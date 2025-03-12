@@ -125,7 +125,43 @@
   .btn-services:hover {
     background: #1e7e34;
   }
-  
+  /* Style for the dropdown list */
+.hero .login-options {
+  display: none; /* Hide the dropdown initially */
+  position: absolute;
+  top: 50px; /* Position it below the login button */
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* Ensure it's on top */
+}
+
+.hero .login-options ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.hero .login-options li {
+  padding: 10px 20px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.hero .login-options li:last-child {
+  border-bottom: none;
+}
+
+.hero .login-options a {
+  text-decoration: none;
+  color: #007bff;
+  font-size: 16px;
+}
+
+.hero .login-options a:hover {
+  color: #0056b3;
+}
   /* Hero Image */
   .hero-image {
     flex: 1;

@@ -1,31 +1,74 @@
 <?php
 
 require_once('../config/database.php');
+session_start(); // Start the session
 
 if($_SERVER['REQUEST_METHOD'] == 'POST'){
-    $userid = $_POST['userid'];
+    $patientid = $_POST['patientid'];
     $password = $_POST['password'];
 
-    $sql = "SELECT * FROM patients WHERE userid='$userid'";
+    $sql = "SELECT * FROM patients WHERE patientid='$patientid'";
     $result = mysqli_query($conn, $sql);
 
-if(mysqli_num_rows($result) > 0){
-    $row = mysqli_fetch_assoc($result);
-    if($row['password'] == ($password)){
+    if(mysqli_num_rows($result) > 0){
+        $row = mysqli_fetch_assoc($result);
+        if($row['password'] == ($password)){
             
-          
-            header('Location: patientdash.php ');
+             // Store userid and patient_id in session
+             $_SESSION['userid'] = $row['userid'];
+             $_SESSION['patient_id'] = $row['patient_id'];
             
-            // echo "Login Successfull";
-    }else{
-       
-        echo '<script>alert("USER ID and PASSWORD NOT MATCHED")</script>';
+            header('Location: patientdash.php');
+            exit(); // Ensure script stops after redirect
+        }else{
+            echo '<script>alert("USER ID and PASSWORD NOT MATCHED")</script>';
+        }
+    } else {
+        echo '<script>alert("USER ID NOT FOUND")</script>';
     }
 }
-else{
-    echo '<script>alert("USER ID NOT FOUND")</script>';
-}
-}
+
+// if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+//   $userid = $_POST['userid'];
+//   $password = $_POST['password'];
+//   $usertype = $_POST['usertype']; // Identify user type (patient, doctor, admin)
+
+//   // Define table name based on user type
+//   if ($usertype == 'patient') {
+//       $table = 'patients';
+//       $id_column = 'patientid';
+//       $redirect = 'patientdash.php';
+//   } elseif ($usertype == 'doctor') {
+//       $table = 'doctors';
+//       $id_column = 'doctorid';
+//       $redirect = 'doctordash.php';
+//   } elseif ($usertype == 'admin') {
+//       $table = 'admins';
+//       $id_column = 'adminid';
+//       $redirect = 'admindash.php';
+//   } else {
+//       echo '<script>alert("Invalid user type.");</script>';
+//       exit();
+//   }
+
+//   $sql = "SELECT * FROM $table WHERE $id_column='$userid'";
+//   $result = mysqli_query($conn, $sql);
+
+//   if (mysqli_num_rows($result) > 0) {
+//       $row = mysqli_fetch_assoc($result);
+//       if ($row['password'] == $password) {
+//           // Store user session data
+//           $_SESSION['userid'] = $row['userid'];
+//           $_SESSION['user_type'] = $usertype;
+//           header("Location: $redirect");
+//           exit();
+//       } else {
+//           echo '<script>alert("USER ID and PASSWORD NOT MATCHED");</script>';
+//       }
+//   } else {
+//       echo '<script>alert("USER ID NOT FOUND");</script>';
+//   }
+// }
 ?>
 
 <!DOCTYPE html>
@@ -60,7 +103,7 @@ else{
           <form class="auth-form" method="POST">
             <div class="form-group">
               <label for="userid">UserID</label>
-              <input type="number" id="userid" name="userid" class="form-input" placeholder="Enter your UserID" required>
+              <input type="number" id="userid" name="patientid" class="form-input" placeholder="Enter your UserID" required>
             </div>
 
             <div class="form-group">
@@ -71,6 +114,7 @@ else{
                   <i data-lucide="eye"></i>
                 </button>
               </div>
+             
               <div class="forgot-password">
                 <a href="#" style="text-decoration: none;">Forgot password?</a>
               </div>
@@ -89,7 +133,7 @@ else{
           </form> -->
 
           <div class="auth-footer">
-            <p>Don't have an account? <a href="patientregister.php" style="text-decoration: none;">Sign up</a></p>
+            <p>Don't have an account? <a href="patientregister.php" style="text-decoration: none;">Register</a></p>
           </div>
         </div>
       </div>

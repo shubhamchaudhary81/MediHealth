@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == 'POST') {
     // First Name Validation
 
      // Generate a unique 6-digit user ID
-     $userid = mt_rand(100000, 999999);
+     $patientid = mt_rand(100000, 999999);
 
       // Name Validation
       $firstName = trim($firstName);
@@ -152,7 +152,7 @@ if (empty($errors)) {
 
   // Prepare statement
   $stmt = $conn->prepare("INSERT INTO patients 
-      (userid, first_name, last_name, email, dob, number, zone, district, city, password, gender, created_at) 
+      (patientid, first_name, last_name, email, dob, number, zone, district, city, password, gender, created_at) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
 
   if ($stmt === false) {
@@ -160,7 +160,7 @@ if (empty($errors)) {
   }
 
   // Bind parameters
-  $stmt->bind_param("sssssssssss", $userid, $firstName, $lastName, $email, $dob, $number, $zone, $district, $city, $hashed_password, $gender);
+  $stmt->bind_param("sssssssssss", $patientid, $firstName, $lastName, $email, $dob, $number, $zone, $district, $city, $hashed_password, $gender);
 
   // Execute statement
   if ($stmt->execute()) {
@@ -202,7 +202,7 @@ if (empty($errors)) {
             <p style='font-size: 16px; color: #555;'>We are excited to have you on board. Your health is our priority, and we're here to support you on your journey to wellness.</p>
             
             <div style='background-color: #f2f2f2; padding: 15px; border-radius: 10px; display: inline-block;'>
-                <p><strong>Your User ID:</strong> <span style='color: #2d89ef;'>$userid</span></p>
+                <p><strong>Your User ID:</strong> <span style='color: #2d89ef;'>$patientid</span></p>
                 <p><strong>Your Password:</strong> <span style='color: #2d89ef;'>$password</span></p>
             </div>
 
@@ -226,11 +226,11 @@ if (empty($errors)) {
       header("Location: patientlogin.php"); // Redirect on success
       exit();
   } else {
-      echo "Error: " . $stmt->error;
+      // echo "Error: " . $stmt->error;
   }
 
   // Close statement
-  $stmt->close();
+  // $stmt->close();
 }
 
 

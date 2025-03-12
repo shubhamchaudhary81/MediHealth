@@ -47,6 +47,18 @@
             <h1>Welcome To, <span>MediHealth </span></h1>
             <p>We are here to connect you to the best doctor & help to get the best medical service and manage you treatment.</p>
             <a href="patient/patientlogin.php" class="btn-services">Login</a>
+            <!-- <div class="item3"> -->
+    <!-- Login Button -->
+    <!-- <button class="btn-services" id="loginButton">Login</button> -->
+    <!-- Dropdown list that will show when the login button is clicked -->
+    <!-- <div id="loginOptions" class="login-options"> -->
+        <!-- <ul>
+            <li><a href="patient/patientlogin.php">Patient</a></li>
+            <li><a href="doctor/doctorlogin.php">Doctor</a></li>
+            <li><a href="admin/adminlogin.php">Admin</a></li>
+        </ul> -->
+    <!-- </div> -->
+<!-- </div> -->
         </div>
         <div class="hero-image">
             <img src="assets/pngtree-city-hospital-elements-png-image_14500475.png" alt="Doctor">
@@ -72,7 +84,7 @@
               <div class="testimonial-header">
                 <div class="testimonial-avatar">JD</div>
                 <div>
-                  <h4>John Doe</h4>
+                  <h4>Raju</h4>
                   <p>Patient</p>
                 </div>
               </div>
@@ -85,7 +97,7 @@
               <div class="testimonial-header">
                 <div class="testimonial-avatar">SM</div>
                 <div>
-                  <h4>Sarah Miller</h4>
+                  <h4>Mahesh</h4>
                   <p>Patient</p>
                 </div>
               </div>
@@ -98,7 +110,7 @@
               <div class="testimonial-header">
                 <div class="testimonial-avatar">AR</div>
                 <div>
-                  <h4>Alex Rodriguez</h4>
+                  <h4>Shibu</h4>
                   <p>Patient</p>
                 </div>
               </div>
@@ -109,6 +121,26 @@
           </div>
         </div>
       </section>
+
+      
+        <script>
+    // Get the button and the dropdown
+    const loginButton = document.getElementById('loginButton');
+    const loginOptions = document.getElementById('loginOptions');
+
+    // Toggle dropdown visibility when the login button is clicked
+    loginButton.addEventListener('click', () => {
+        loginOptions.style.display = (loginOptions.style.display === 'block') ? 'none' : 'block';
+    });
+
+    // Close the dropdown if the user clicks anywhere outside of the button or the dropdown
+    window.addEventListener('click', (event) => {
+        if (!loginButton.contains(event.target) && !loginOptions.contains(event.target)) {
+            loginOptions.style.display = 'none';
+        }
+    });
+</script>
+      
 
 <!-- footer start -->
  <?php

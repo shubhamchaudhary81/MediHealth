@@ -1,3 +1,13 @@
+<?php
+session_start();
+
+if(empty($_SESSION['userid']))
+{
+    header('location: ../index.php');
+    exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +19,9 @@
   <link rel="stylesheet" href="../css/header.css">
   <link rel="stylesheet" href="../css/footer.css">
   <link rel="stylesheet" href="../css/patientdash.css">
+  <link rel="stylesheet" href="../css/bookappointment.css">
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <!-- Font Awesome for icons -->
@@ -28,15 +41,15 @@
             </div>
             
             <nav class="nav-desktop">
-              <a style="text-decoration: none;" href="index.html" class="nav-link active">Home</a>
-              <a style="text-decoration: none;" href="#" class="nav-link">Services</a>
+              <a style="text-decoration: none;" href="../patient/patientdash.php" class="nav-link active">Home</a>
+              <!-- <a style="text-decoration: none;" href="#" class="nav-link">Services</a> -->
               <a href="#" class="nav-link">Our Doctors</a>
-              <a href="#" class="nav-link">Book Appointment</a>
+              <a href="../patient/bookappointment.php" class="nav-link">Book Appointment</a>
               <a href="#" class="nav-link">Contact</a>
             </nav>
     
             <div class="nav-buttons">
-              <a href="#" class="btn btn-outline">Logout</a>
+              <a href="../patient/logout.php" class="btn btn-outline">Logout</a>
             </div>
           </div>
         </div>

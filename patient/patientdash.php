@@ -1,51 +1,37 @@
 <?php
-include_once('../include/header.php')
+// session_start();
+include_once('../include/header.php');
+
+// Start session to get user's first name
+
+
+// Sample first name (Replace this with session or database value)
+$firstName = isset($_SESSION['firstName']) ? $_SESSION['firstName'] : 'Guest';
+
+// Get current hour
+$hour = date('H');
+
+// Determine greeting message
+if ($hour >= 5 && $hour < 12) {
+    $greeting = "Good Morning";
+} elseif ($hour >= 12 && $hour < 17) {
+    $greeting = "Good Afternoon";
+} else {
+    $greeting = "Good Evening";
+}
+
 ?>
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediHealth- Patientdash</title>
-  <link rel="stylesheet" href="../css/patientdash.css">
-  <link rel="stylesheet" href="../css/footer.css"> -->
 
-  <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"> -->
-  <!-- Font Awesome for icons -->
-  <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-
-</head> -->
 <body>
-  <!-- Navigation -->
-  <!-- <header class="navbar" id="navbar">
-    <div class="container">
-      <div class="navbar-content">
-        
-        <div class="item1"> <img src="logo-fotor-20250118225918.png" width="100px"></div> -->
+ 
 
-        <!-- Desktop Navigation -->
-        <!-- <nav class="nav-desktop">
-          <a href="index.html" class="nav-link active">Home</a>
-          <a href="#" class="nav-link">Services</a>
-          <a href="#" class="nav-link">Our Doctors</a>
-          <a href="#" class="nav-link">Contact</a>
-        </nav> -->
-
-        <!-- <div class="nav-buttons">
-          <a href="#" class="btn btn-outline">LogOut</a> -->
-          <!-- <a href="#" class="btn btn-primary">Register</a> -->
-        </div>
-
-        <!-- Mobile menu button -->
-        <!-- <button class="menu-toggle" id="menuToggle">
-          <i class="fa-solid fa-bars"></i>
-        </button>
-      </div>
-    </div>
-  </header> -->
+ 
 
   <main>
+    <!-- Greeting Section -->
+<div class="greeting-container">
+    <p class="greeting-text"><?php echo "$greeting, $firstName!"; ?> Welcome to MediHealth.</p>
+</div>
     <!-- Hero Section -->
     <section class="hero">
       <div class="container">
@@ -57,7 +43,7 @@ include_once('../include/header.php')
               access your records, and connect with expert doctors all in one place.</p>
             
             <div class="hero-buttons">
-              <a href="#appointment" class="btn btn-primary">
+              <a href="bookappointment.php" class="btn btn-primary">
                 <i class="fa-solid fa-calendar"></i> Book Appointment
               </a>
             
@@ -178,98 +164,8 @@ include_once('../include/header.php')
 
   </main>
 
-  <!-- Footer -->
-  <!-- <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-col">
-          <a href="index.html" class="footer-logo">
-            <div class="logo-icon light">
-              <i class="fa-solid fa-file-medical"></i>
-            </div>
-            <span>MediPoint</span>
-          </a>
-          <p>
-            Providing quality healthcare services with a focus on patient comfort and cutting-edge medical technology.
-          </p>
-          <div class="social-links">
-            <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-linkedin-in"></i></a>
-          </div>
-        </div>
-        
-        <div class="footer-col">
-          <h3>Quick Links</h3>
-          <ul class="footer-links">
-            <li><a href="index.html">Home</a></li>
-            <li><a href="#">Services</a></li>
-            <li><a href="#">Our Doctors</a></li>
-            <li><a href="#">Contact</a></li>
-            <li><a href="#appointment">Book Appointment</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-col">
-          <h3>Services</h3>
-          <ul class="footer-links">
-            <li><a href="#">General Checkup</a></li>
-            <li><a href="#">Cardiology</a></li>
-            <li><a href="#">Neurology</a></li>
-            <li><a href="#">Orthopedics</a></li>
-            <li><a href="#">Pediatrics</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-col">
-          <h3>Contact Info</h3>
-          <ul class="contact-info">
-            <li>
-              <i class="fa-solid fa-location-dot"></i>
-              <span>123 Medical Center Drive, Healthcare City, HC 12345</span>
-            </li>
-            <li>
-              <i class="fa-solid fa-phone"></i>
-              <span>+1 (555) 123-4567</span>
-            </li>
-            <li>
-              <i class="fa-solid fa-envelope"></i>
-              <span>contact@medipoint.com</span>
-            </li>
-            <li>
-              <i class="fa-solid fa-calendar"></i>
-              <span>Mon-Fri: 8AM - 6PM</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-      
-      <div class="footer-bottom">
-        <p>&copy; <span id="currentYear"></span> MediPoint. All rights reserved.</p>
-        <ul class="legal-links">
-          <li><a href="#">Privacy Policy</a></li>
-          <li><a href="#">Terms of Service</a></li>
-          <li><a href="#">Sitemap</a></li>
-        </ul>
-      </div>
-    </div>
-  </footer> -->
 
-  <!-- Toast Notification -->
-  <!-- <div id="toast" class="toast">
-    <div class="toast-content">
-      <i class="fa-solid fa-circle-check"></i>
-      <div class="toast-message">
-        <span class="toast-title">Success</span>
-        <span class="toast-description">Your appointment has been booked successfully!</span>
-      </div>
-    </div>
-    <div class="toast-progress"></div>
-  </div> -->
-
-  <script src="../js/patientdash.js"></script>
-
+ 
   <?php
          include('../include/footer.php')
   ?>
