@@ -3,72 +3,32 @@
 require_once('../config/database.php');
 session_start(); // Start the session
 
-if($_SERVER['REQUEST_METHOD'] == 'POST'){
-    $patientid = $_POST['patientid'];
-    $password = $_POST['password'];
+// if($_SERVER['REQUEST_METHOD'] == 'POST'){
+//     $patientid = $_POST['patientid'];
+//     $password = $_POST['password'];
 
-    $sql = "SELECT * FROM patients WHERE patientid='$patientid'";
-    $result = mysqli_query($conn, $sql);
+//     $sql = "SELECT * FROM patients WHERE patientid='$patientid'";
+//     $result = mysqli_query($conn, $sql);
 
-    if(mysqli_num_rows($result) > 0){
-        $row = mysqli_fetch_assoc($result);
-        if($row['password'] == ($password)){
+//     if(mysqli_num_rows($result) > 0){
+//         $row = mysqli_fetch_assoc($result);
+//         if($row['password'] == ($password)){
             
-             // Store userid and patient_id in session
-             $_SESSION['userid'] = $row['userid'];
-             $_SESSION['patient_id'] = $row['patient_id'];
+//              // Store userid and patient_id in session
+//              $_SESSION['userid'] = $row['userid'];
+//              $_SESSION['patient_id'] = $row['patient_id'];
             
-            header('Location: patientdash.php');
-            exit(); // Ensure script stops after redirect
-        }else{
-            echo '<script>alert("USER ID and PASSWORD NOT MATCHED")</script>';
-        }
-    } else {
-        echo '<script>alert("USER ID NOT FOUND")</script>';
-    }
-}
-
-// if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-//   $userid = $_POST['userid'];
-//   $password = $_POST['password'];
-//   $usertype = $_POST['usertype']; // Identify user type (patient, doctor, admin)
-
-//   // Define table name based on user type
-//   if ($usertype == 'patient') {
-//       $table = 'patients';
-//       $id_column = 'patientid';
-//       $redirect = 'patientdash.php';
-//   } elseif ($usertype == 'doctor') {
-//       $table = 'doctors';
-//       $id_column = 'doctorid';
-//       $redirect = 'doctordash.php';
-//   } elseif ($usertype == 'admin') {
-//       $table = 'admins';
-//       $id_column = 'adminid';
-//       $redirect = 'admindash.php';
-//   } else {
-//       echo '<script>alert("Invalid user type.");</script>';
-//       exit();
-//   }
-
-//   $sql = "SELECT * FROM $table WHERE $id_column='$userid'";
-//   $result = mysqli_query($conn, $sql);
-
-//   if (mysqli_num_rows($result) > 0) {
-//       $row = mysqli_fetch_assoc($result);
-//       if ($row['password'] == $password) {
-//           // Store user session data
-//           $_SESSION['userid'] = $row['userid'];
-//           $_SESSION['user_type'] = $usertype;
-//           header("Location: $redirect");
-//           exit();
-//       } else {
-//           echo '<script>alert("USER ID and PASSWORD NOT MATCHED");</script>';
-//       }
-//   } else {
-//       echo '<script>alert("USER ID NOT FOUND");</script>';
-//   }
+//             header('Location: patientdash.php');
+//             exit(); // Ensure script stops after redirect
+//         }else{
+//             echo '<script>alert("USER ID and PASSWORD NOT MATCHED")</script>';
+//         }
+//     } else {
+//         echo '<script>alert("USER ID NOT FOUND")</script>';
+//     }
 // }
+
+
 ?>
 
 <!DOCTYPE html>

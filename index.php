@@ -1,5 +1,5 @@
 <?php
-  include_once('./config/database.php');
+  include_once('./config/configdatabase.php');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -37,7 +37,9 @@
             </div>
 
             <div class="item3">
-                <a href="patient/patientregister.php" class="btn-register">Register Now</a>
+                <a href="patient/patientregister.php" class="btn-register">Patient Register</a>
+                <a href="hospital/hospitalregister.php" class="btn-register">Hospital Register</a>
+
                 <!-- <a href="#register" class="btn-login">Login</a> -->
             </div>
         </header>
