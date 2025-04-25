@@ -51,44 +51,7 @@ if ($conn->query($tableSql) === TRUE) {
     // echo "Error creating 'patients' table: " . $conn->error . "<br>";
 }
 
-// // Step 5: Create 'department' table
-// $deptSql = "CREATE TABLE IF NOT EXISTS department (
-//     department_id INT AUTO_INCREMENT PRIMARY KEY,
-//     department_name VARCHAR(100) NOT NULL UNIQUE
-// )";
-// if ($conn->query($deptSql) === TRUE) {
-//     echo "Table 'department' created successfully<br>";
-// } else {
-//     echo "Error creating 'department' table: " . $conn->error . "<br>";
-// }
 
-// // Step 6: Insert department data
-// $insertDept = "INSERT IGNORE INTO department (department_name) VALUES
-// ('Cardiology'),
-// ('Neurology'),
-// ('Orthopedics'),
-// ('Pediatrics'),
-// ('General Surgery'),
-// ('Dermatology'),
-// ('Radiology'),
-// ('Psychiatry'),
-// ('ENT (Ear, Nose, Throat)'),
-// ('Anesthesiology'),
-// ('Ophthalmology'),
-// ('Urology'),
-// ('Gastroenterology'),
-// ('Nephrology'),
-// ('Oncology'),
-// ('Gynecology'),
-// ('Emergency'),
-// ('Dental'),
-// ('Physiotherapy'),
-// ('Pathology')";
-// if ($conn->query($insertDept) === TRUE) {
-//     echo "Department data inserted successfully<br>";
-// } else {
-//     echo "Error inserting department data: " . $conn->error . "<br>";
-// }
 
 
 // Create 'department' table
@@ -136,6 +99,55 @@ if ($conn->query($sql) === TRUE) {
     // echo "Department data inserted successfully<br>";
 } else {
     // echo "Error inserting department data: " . $conn->error . "<br>";
+}
+
+//create hospital table
+$hospitalTableSql = "CREATE TABLE IF NOT EXISTS hospital (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    location VARCHAR(150) NOT NULL,
+    website VARCHAR(150),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)";
+if ($conn->query($hospitalTableSql) === TRUE) {
+    // echo "Table 'hospital' created successfully<br>";
+} else {
+    // echo "Error creating 'hospital' table: " . $conn->error . "<br>";
+}
+
+// Create 'hospitaldepartment' table
+// This table will link hospitals to their departments
+$hospitalDeptTableSql = "CREATE TABLE IF NOT EXISTS hospitaldepartment (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    hospitalid INT(11) NOT NULL,
+    department_id INT(11) NOT NULL,
+    FOREIGN KEY (hospitalid) REFERENCES hospital(id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES department(department_id) ON DELETE CASCADE
+)";
+if ($conn->query($hospitalDeptTableSql) === TRUE) {
+    // echo "Table 'hospitaldepartment' created successfully<br>";
+} else {
+    // echo "Error creating 'hospitaldepartment' table: " . $conn->error . "<br>";
+}
+
+// Create 'hospitaladmin' table
+// This table will store hospital admin details
+$hospitalAdminTableSql = "CREATE TABLE IF NOT EXISTS hospitaladmin (
+    adminid INT(11) AUTO_INCREMENT PRIMARY KEY,
+    hospitalid INT(11) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (hospitalid) REFERENCES hospital(id) ON DELETE CASCADE
+)";
+if ($conn->query($hospitalAdminTableSql) === TRUE) {
+    // echo "Table 'hospitaladmin' created successfully<br>";
+} else {
+    // echo "Error creating 'hospitaladmin' table: " . $conn->error . "<br>";
 }
 
 // $conn->close();

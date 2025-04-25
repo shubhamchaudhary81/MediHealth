@@ -1,6 +1,6 @@
 <?php
 
-require_once('../config/database.php');
+require_once('../config/configdatabase.php');
 session_start(); // Start the session
 
 // if($_SERVER['REQUEST_METHOD'] == 'POST'){

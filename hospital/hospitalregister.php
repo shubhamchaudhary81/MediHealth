@@ -1,5 +1,122 @@
 <?php
-  include_once('../config/configdatabase.php');
+include_once('../config/configdatabase.php');
+
+function generateAdminID($conn) {
+    $query = "SELECT MAX(adminid) AS last_id FROM hospitaladmin";
+    $result = $conn->query($query);
+    if ($result && $row = $result->fetch_assoc()) {
+        $lastId = $row['last_id'];
+        return $lastId ? $lastId + 1 : 10001;
+    } else {
+        return 10001;
+    }
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $hospitalName = trim($_POST['hospitalName']);
+    $email = trim($_POST['email']);
+    $phone = trim($_POST['phone']);
+    $location = trim($_POST['location']);
+    $website = trim($_POST['website']);
+    $departments = isset($_POST['departments']) ? $_POST['departments'] : [];
+
+    $adminName = trim($_POST['adminName']);
+    $adminEmail = trim($_POST['adminEmail']);
+    $adminPhone = trim($_POST['adminPhone']);
+    $adminPassword = $_POST['adminPassword'];
+    $confirmPassword = $_POST['confirmPassword'];
+
+    $errors = [];
+
+    // Basic Validation
+    if (empty($hospitalName) || empty($email) || empty($phone) || empty($location)) {
+        $errors[] = "Please fill all required hospital fields.";
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Invalid hospital email.";
+    }
+
+    if ($adminPassword !== $confirmPassword) {
+        $errors[] = "Passwords do not match.";
+    }
+
+    if (empty($errors)) {
+        // Insert hospital
+        $stmt = $conn->prepare("INSERT INTO hospital (name, email, phone, location, website) VALUES (?, ?, ?, ?, ?)");
+        if ($stmt) {
+            $stmt->bind_param("sssss", $hospitalName, $email, $phone, $location, $website);
+            if ($stmt->execute()) {
+                $hospital_id = $stmt->insert_id;
+                $stmt->close();
+
+             // Insert departments into hospitaldepartment
+if (!empty($departments)) {
+    foreach ($departments as $deptName) {
+        $deptName = trim($deptName);
+
+        // Get department ID
+        $deptStmt = $conn->prepare("SELECT department_id FROM department WHERE department_name = ?");
+        if ($deptStmt) {
+            $deptStmt->bind_param("s", $deptName);
+            $deptStmt->execute();
+            $deptStmt->store_result();
+
+            if ($deptStmt->num_rows > 0) {
+                $deptStmt->bind_result($deptId);
+                $deptStmt->fetch();
+                $deptStmt->close();
+
+                // Now insert into hospitaldepartment
+                $insertDeptStmt = $conn->prepare("INSERT INTO hospitaldepartment (hospitalid, department_id) VALUES (?, ?)");
+                if ($insertDeptStmt) {
+                    $insertDeptStmt->bind_param("ii", $hospital_id, $deptId);
+                    if (!$insertDeptStmt->execute()) {
+                        echo "<p style='color:red;'>Failed to insert into hospitaldepartment: " . $insertDeptStmt->error . "</p>";
+                    }
+                    $insertDeptStmt->close();
+                } else {
+                    echo "<p style='color:red;'>Prepare insert hospitaldepartment failed: " . $conn->error . "</p>";
+                }
+            } else {
+                echo "<p style='color:red;'>Department '$deptName' not found in department table.</p>";
+                $deptStmt->close();
+            }
+        } else {
+            echo "<p style='color:red;'>Prepare department lookup failed: " . $conn->error . "</p>";
+        }
+    }
+} else {
+    echo "<p style='color:red;'>No departments selected.</p>";
+}
+                
+
+                // Insert admin
+                $adminid = generateAdminID($conn);
+                $hashedPassword = password_hash($adminPassword, PASSWORD_DEFAULT);
+                $adminStmt = $conn->prepare("INSERT INTO hospitaladmin (hospitalid, adminid, name, email, phone, password) VALUES (?, ?, ?, ?, ?, ?)");
+                if ($adminStmt) {
+                    $adminStmt->bind_param("iissss", $hospital_id, $adminid, $adminName, $adminEmail, $adminPhone, $hashedPassword);
+                    $adminStmt->execute();
+                    $adminStmt->close();
+
+                    header("Location: index.php"); // Redirect on success
+                    exit;
+                } else {
+                    echo "<p style='color:red;'>Admin insert failed: " . $conn->error . "</p>";
+                }
+            } else {
+                echo "<p style='color:red;'>Hospital insert failed: " . $stmt->error . "</p>";
+            }
+        } else {
+            echo "<p style='color:red;'>Hospital statement failed: " . $conn->error . "</p>";
+        }
+    } else {
+        foreach ($errors as $error) {
+            echo "<p style='color:red;'>$error</p>";
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -188,7 +305,7 @@
   <div class="container">
     <h1>Hospital Registration Form</h1>
 
-    <form>
+    <form method="POST" action="">
       <h3>Hospital Details</h3>
 
       <div class="form-row">
@@ -253,7 +370,7 @@
       </div>
 
       <h3>Admin Details</h3>
-
+<!-- 
       <div class="form-row">
         <div class="form-group">
           <label for="adminName">Admin Name</label>
@@ -290,7 +407,42 @@
 
       <div class="submit-section">
         <button type="submit">Register Hospital</button>
-      </div>
+      </div> -->
+
+      <!-- First row: 3 fields -->
+<div class="form-row" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="form-group">
+    <label for="adminName">Admin Name</label>
+    <input type="text" id="adminName" name="adminName" required>
+  </div>
+
+  <div class="form-group">
+    <label for="adminEmail">Admin Email</label>
+    <input type="email" id="adminEmail" name="adminEmail" required>
+  </div>
+
+  <div class="form-group">
+    <label for="adminPhone">Admin Contact</label>
+    <input type="tel" id="adminPhone" name="adminPhone" required>
+  </div>
+</div>
+
+<!-- Second row: 2 fields -->
+<div class="form-row" style="grid-template-columns: repeat(2, 1fr);">
+  <div class="form-group">
+    <label for="adminPassword">Admin Password</label>
+    <input type="password" id="adminPassword" name="adminPassword" required>
+  </div>
+
+  <div class="form-group">
+    <label for="confirmPassword">Confirm Password</label>
+    <input type="password" id="confirmPassword" name="confirmPassword" required>
+  </div>
+</div>
+
+<div class="submit-section">
+        <button type="submit">Register Hospital</button>
+      </div> 
     </form>
   </div>
 

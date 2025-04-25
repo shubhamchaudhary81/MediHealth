@@ -5,7 +5,7 @@ use PHPMailer\PHPMailer\Exception;
 require '../PHPMailer/Exception.php';
 require '../PHPMailer/PHPMailer.php';
 require '../PHPMailer/SMTP.php';
-include_once('../config/database.php');
+include_once('../config/configdatabase.php');
 
 // Initialize errors array
 $errors = array();
