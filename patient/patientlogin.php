@@ -1,30 +1,40 @@
 <?php
 
-require_once('../config/database.php');
+require_once('../config/configdatabase.php');
 session_start(); // Start the session
 
-if($_SERVER['REQUEST_METHOD'] == 'POST'){
-    $patientid = $_POST['patientid'];
-    $password = $_POST['password'];
+$error = '';
 
-    $sql = "SELECT * FROM patients WHERE patientid='$patientid'";
-    $result = mysqli_query($conn, $sql);
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $patientid = trim($_POST['patientID']);
+    $password = trim($_POST['password']);
 
-    if(mysqli_num_rows($result) > 0){
-        $row = mysqli_fetch_assoc($result);
-        if($row['password'] == ($password)){
-            
-             // Store userid and patient_id in session
-             $_SESSION['userid'] = $row['userid'];
-             $_SESSION['patient_id'] = $row['patient_id'];
-            
-            header('Location: patientdash.php');
-            exit(); // Ensure script stops after redirect
-        }else{
-            echo '<script>alert("USER ID and PASSWORD NOT MATCHED")</script>';
+    // Prepare statement to prevent SQL injection
+    $stmt = $conn->prepare("SELECT * FROM patients WHERE patientID = ?");
+    if ($stmt) {
+        $stmt->bind_param("s", $patientid);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $patient = $result->fetch_assoc();
+            if (password_verify($password, $patient['password'])) {
+                // Store session variables
+                $_SESSION['patientID'] = $patient['patientID'];
+                $_SESSION['user_type'] = 'patient';
+                $_SESSION['patient_name'] = $patient['first_name'];
+                
+                header("Location: patientdash.php");
+                exit();
+            } else {
+                $error = "Invalid password. Please try again.";
+            }
+        } else {
+            $error = "Patient ID not found. Please check your credentials.";
         }
+        $stmt->close();
     } else {
-        echo '<script>alert("USER ID NOT FOUND")</script>';
+        $error = "Database error. Please try again later.";
     }
 }
 
@@ -76,17 +86,97 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediHealth - Login</title>
-  <link rel="stylesheet" href="../css/patientlogin.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-icons@latest/dist/umd/lucide.min.js">
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <title>MediHealth - Patient Login</title>
+  <link rel="stylesheet" href="../css/register.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    .auth-form {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    
+    .form-input:focus {
+      border-color: #2d89ef;
+      outline: none;
+    }
+    
+    .password-input-wrapper {
+      position: relative;
+    }
+    
+    .password-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #666;
+    }
+    
+    .error-message {
+      color: #dc3545;
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
+    .btn-primary {
+      background-color: #2d89ef;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      font-weight: 500;
+      transition: background-color 0.3s;
+    }
+    
+    .btn-primary:hover {
+      background-color: #1a75d1;
+    }
+    
+    .auth-footer {
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+    }
+    
+    .auth-footer a {
+      color: #2d89ef;
+      text-decoration: none;
+    }
+    
+    .auth-footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
   <div class="auth-page">
     <div class="auth-container">
       <div class="auth-content">
         <div class="auth-header">
-          <a href="index.html" class="logo">
+          <a href="../index.php" class="logo">
             <div class="logo-icon">
               <i data-lucide="file-text"></i>
             </div>
@@ -100,49 +190,33 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
             <p>Please enter your details to sign in</p>
           </div>
 
+          <?php if ($error): ?>
+            <div class="error-message">
+              <?php echo htmlspecialchars($error); ?>
+            </div>
+          <?php endif; ?>
+
           <form class="auth-form" method="POST">
-          <div class="form-group">
-    <label for="role">Select Role</label>
-    <select name="role" id="role" class="form-input" required>
-      <option value="">-- Choose Role --</option>
-      <option value="patient">Patient</option>
-      <option value="doctor">Doctor</option>
-      <option value="admin">Admin</option>
-    </select>
-  </div>
             <div class="form-group">
-              <label for="userid">UserID</label>
-              <input type="number" id="userid" name="patientid" class="form-input" placeholder="Enter your UserID" required>
+              <label for="patientID">Patient ID</label>
+              <input type="text" id="patientID" name="patientID" class="form-input" placeholder="Enter your Patient ID" required>
             </div>
 
             <div class="form-group">
               <label for="password">Password</label>
               <div class="password-input-wrapper">
                 <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required>
-                <button type="button" class="password-toggle">
+                <button type="button" class="password-toggle" onclick="togglePassword()">
                   <i data-lucide="eye"></i>
                 </button>
               </div>
-             
-              <div class="forgot-password">
-                <a href="#" style="text-decoration: none;">Forgot password?</a>
-              </div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-full">Sign in</button>
-            
-            <!-- <div class="auth-separator">
-              <span>OR</span>
-            </div>
-            
-            <button type="button" class="btn btn-outline btn-full google-btn">
-              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" width="18" height="18">
-              Sign in with Google
-            </button>
-          </form> -->
+            <button type="submit" class="btn btn-primary">Sign in</button>
+          </form>
 
           <div class="auth-footer">
-            <p>Don't have an account? <a href="patientregister.php" style="text-decoration: none;">Register</a></p>
+            <p>Don't have an account? <a href="patientregister.php">Register</a></p>
           </div>
         </div>
       </div>
@@ -160,13 +234,9 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
   </div>
 
   <script>
-    // Initialize Lucide icons
-    lucide.createIcons();
-    
-    // Password visibility toggle
-    document.querySelector('.password-toggle').addEventListener('click', function() {
+    function togglePassword() {
       const passwordInput = document.getElementById('password');
-      const icon = this.querySelector('i');
+      const icon = document.querySelector('.password-toggle i');
       
       if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
@@ -176,8 +246,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
         icon.setAttribute('data-lucide', 'eye');
       }
       
-      lucide.createIcons();
-    });
+      // Refresh Lucide icons
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
   </script>
 </body>
 </html>

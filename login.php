@@ -1,33 +1,51 @@
 <?php
 
-require_once('../config/configdatabase.php');
+require_once('config/configdatabase.php');
 session_start(); // Start the session
 
-// if($_SERVER['REQUEST_METHOD'] == 'POST'){
-//     $patientid = $_POST['patientid'];
-//     $password = $_POST['password'];
+$error = '';
 
-//     $sql = "SELECT * FROM patients WHERE patientid='$patientid'";
-//     $result = mysqli_query($conn, $sql);
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $userid = trim($_POST['userid']);
+    $password = trim($_POST['password']);
+    $user_type = trim($_POST['user_type']);
 
-//     if(mysqli_num_rows($result) > 0){
-//         $row = mysqli_fetch_assoc($result);
-//         if($row['password'] == ($password)){
-            
-//              // Store userid and patient_id in session
-//              $_SESSION['userid'] = $row['userid'];
-//              $_SESSION['patient_id'] = $row['patient_id'];
-            
-//             header('Location: patientdash.php');
-//             exit(); // Ensure script stops after redirect
-//         }else{
-//             echo '<script>alert("USER ID and PASSWORD NOT MATCHED")</script>';
-//         }
-//     } else {
-//         echo '<script>alert("USER ID NOT FOUND")</script>';
-//     }
-// }
-
+    // First check in usertype table
+    $stmt = $conn->prepare("SELECT * FROM usertype WHERE userid = ? AND user_type = ?");
+    if ($stmt) {
+        $stmt->bind_param("ss", $userid, $user_type);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $user = $result->fetch_assoc();
+            if (password_verify($password, $user['password']) || $password === $user['password']) {
+                // Store only essential session variables
+                $_SESSION['user_id'] = $user['reference_id'];
+                $_SESSION['user_type'] = $user_type;
+                
+                // Redirect based on user type
+                switch($user_type) {
+                    case 'patient':
+                        header("Location: patient/patientdash.php");
+                        break;
+                    case 'doctor':
+                        header("Location: doctor/doctordash.php");
+                        break;
+                    case 'hospital_admin':
+                        header("Location: hospital/hospitaldash.php");
+                        break;
+                    case 'super_admin':
+                        header("Location: admin/admindash.php");
+                        break;
+                }
+                exit();
+            }
+        }
+        $stmt->close();
+    }
+    $error = 'Invalid User ID or Password';
+}
 
 ?>
 
@@ -37,107 +55,250 @@ session_start(); // Start the session
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediHealth - Login</title>
-  <link rel="stylesheet" href="../css/patientlogin.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-icons@latest/dist/umd/lucide.min.js">
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 400px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, #4CAF50, #2196F3);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo img {
+      width: 120px;
+      height: auto;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .login-header h1 {
+      color: #333;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .login-header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .input-group i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 15px 12px 45px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+      border-color: #2196F3;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    }
+
+    .select-group {
+      position: relative;
+    }
+
+    .select-group select {
+      width: 100%;
+      padding: 12px 15px 12px 45px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      appearance: none;
+      background: white;
+      cursor: pointer;
+    }
+
+    .select-group i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+    }
+
+    .select-group::after {
+      content: '\f107';
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 900;
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+      pointer-events: none;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(90deg, #4CAF50, #2196F3);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+    }
+
+    .error-message {
+      background: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .register-links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .register-links a {
+      color: #2196F3;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+
+    .register-links a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        width: 95%;
+        padding: 30px 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="auth-page">
-    <div class="auth-container">
-      <div class="auth-content">
-        <div class="auth-header">
-          <a href="index.html" class="logo">
-            <div class="logo-icon">
-              <i data-lucide="file-text"></i>
-            </div>
-            <span>MediHealth</span>
-          </a>
-        </div>
+  <div class="login-container">
+    <div class="logo">
+      <img src="assets/logo-fotor-20250118225918.png" alt="MediHealth Logo">
+    </div>
+    
+    <div class="login-header">
+      <h1>Welcome Back</h1>
+      <p>Please login to your account</p>
+    </div>
 
-        <div class="auth-form-container">
-          <div class="auth-welcome">
-            <h1>Welcome back</h1>
-            <p>Please enter your details to sign in</p>
-          </div>
+    <?php if ($error): ?>
+      <div class="error-message">
+        <?php echo htmlspecialchars($error); ?>
+      </div>
+    <?php endif; ?>
 
-          <form class="auth-form" method="POST">
-          <div class="form-group">
-    <label for="role">Select Role</label>
-    <select name="role" id="role" class="form-input" required>
-      <option value="">-- Choose Role --</option>
-      <option value="patient">Patient</option>
-      <option value="doctor">Doctor</option>
-      <option value="admin">Admin</option>
-    </select>
-  </div>
-            <div class="form-group">
-              <label for="userid">UserID</label>
-              <input type="number" id="userid" name="patientid" class="form-input" placeholder="Enter your UserID" required>
-            </div>
-
-            <div class="form-group">
-              <label for="password">Password</label>
-              <div class="password-input-wrapper">
-                <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" required>
-                <button type="button" class="password-toggle">
-                  <i data-lucide="eye"></i>
-                </button>
-              </div>
-             
-              <div class="forgot-password">
-                <a href="#" style="text-decoration: none;">Forgot password?</a>
-              </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-full">Sign in</button>
-            
-            <!-- <div class="auth-separator">
-              <span>OR</span>
-            </div>
-            
-            <button type="button" class="btn btn-outline btn-full google-btn">
-              <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" width="18" height="18">
-              Sign in with Google
-            </button>
-          </form> -->
-
-          <div class="auth-footer">
-            <p>Don't have an account? <a href="patientregister.php" style="text-decoration: none;">Register</a></p>
-          </div>
+    <form method="POST" action="">
+      <div class="form-group">
+        <label for="user_type">User Type</label>
+        <div class="select-group">
+          <i class="fas fa-user-tag"></i>
+          <select id="user_type" name="user_type" class="form-control" required>
+            <option value="">Select User Type</option>
+            <option value="patient">Patient</option>
+            <option value="doctor">Doctor</option>
+            <option value="hospital_admin">Hospital Admin</option>
+            <option value="super_admin">Super Admin</option>
+          </select>
         </div>
       </div>
-      
-      <div class="auth-image">
-        <div class="image-overlay"></div>
-        <div class="auth-quote">
-          <blockquote>
-            "The art of medicine consists of amusing the patient while nature cures the disease."
-          </blockquote>
-          <cite>— Voltaire</cite>
+
+      <div class="form-group">
+        <label for="userid">User ID</label>
+        <div class="input-group">
+          <i class="fas fa-user"></i>
+          <input type="text" id="userid" name="userid" class="form-control" required>
         </div>
       </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" name="password" class="form-control" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login">Login</button>
+    </form>
+
+    <div class="register-links">
+      <a href="patient/patientregister.php">Register as Patient</a>
+      <a href="hospital/hospitalregister.php">Register as Hospital</a>
     </div>
   </div>
-
-  <script>
-    // Initialize Lucide icons
-    lucide.createIcons();
-    
-    // Password visibility toggle
-    document.querySelector('.password-toggle').addEventListener('click', function() {
-      const passwordInput = document.getElementById('password');
-      const icon = this.querySelector('i');
-      
-      if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        icon.setAttribute('data-lucide', 'eye-off');
-      } else {
-        passwordInput.type = 'password';
-        icon.setAttribute('data-lucide', 'eye');
-      }
-      
-      lucide.createIcons();
-    });
-  </script>
 </body>
 </html>

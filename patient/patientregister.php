@@ -22,6 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == 'POST') {
     $password = trim($_POST['password']);
     $confirm_password = trim($_POST['confirm_password']);
     $gender = isset($_POST['gender']) ? $_POST['gender'] : 'Male';
+    $bloodgroup = trim($_POST['bloodgroup']);
 
     // First Name Validation
     // if (empty($firstName) || !preg_match("/^[a-zA-Z]+$/", $firstName)) {
@@ -152,15 +153,15 @@ if (empty($errors)) {
 
   // Prepare statement
   $stmt = $conn->prepare("INSERT INTO patients 
-      (patientid, first_name, last_name, email, dob, number, zone, district, city, password, gender, created_at) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+      (patientid, first_name, last_name, email, dob, number, zone, district, city, password, gender, bloodgroup, created_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
 
   if ($stmt === false) {
       die("SQL Prepare Error: " . $conn->error);
   }
 
   // Bind parameters
-  $stmt->bind_param("sssssssssss", $patientid, $firstName, $lastName, $email, $dob, $number, $zone, $district, $city, $hashed_password, $gender);
+  $stmt->bind_param("ssssssssssss", $patientid, $firstName, $lastName, $email, $dob, $number, $zone, $district, $city, $hashed_password, $gender, $bloodgroup);
 
   // Execute statement
   if ($stmt->execute()) {
@@ -249,6 +250,56 @@ $conn->close();
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-icons@latest/dist/umd/lucide.min.js"> -->
   <!-- <script src="https://unpkg.com/lucide@latest"></script> -->
+  <style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    
+    .form-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    
+    .gender-group {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+    }
+    
+    .gender-group label {
+        margin-right: 10px;
+    }
+    
+    .blood-group-select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+  </style>
 </head>
 <body>
   <div class="auth-page">
@@ -321,8 +372,8 @@ $conn->close();
             </div>
 
             <div class="form-group">
-              <label for="numer">Phone Number</label>
-              <input type="number" id="number" name="number" class="form-input" placeholder="Enter your phone number" required>
+              <label for="number">Phone Number</label>
+              <input type="tel" id="number" name="number" class="form-input" placeholder="Enter your phone number" required>
               <span class="errormsg" style="color: red;">
                     <?php
                         if (isset($errors['number_error'])) {
@@ -331,10 +382,25 @@ $conn->close();
                         ?>
                     </span>
             </div>
-              <span style="font-weight: bold;">Full Address:</span><br>
+
+            <div class="form-group">
+              <label for="bloodgroup">Blood Group</label>
+              <select id="bloodgroup" name="bloodgroup" class="blood-group-select" required>
+                <option value="">Select Blood Group</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+
             <div class="form-group">
               <label for="zone">Zone</label>
-              <select id="zone" name="zone" class="form-input" required>
+              <select id="zone" name="zone" class="form-select" required>
                 <option value="">Select Zone</option>
                 <option value="Bagmati">Bagmati</option>
                 <option value="Gandaki">Gandaki</option>
@@ -344,41 +410,20 @@ $conn->close();
                 <option value="Karnali">Karnali</option>
                 <option value="Sudurpashchim">Sudurpashchim</option>
               </select>
-              <span class="errormsg" style="color: red;">
-                    <?php
-                        if (isset($errors['zone_error'])) {
-                            echo $errors['zone_error'];
-                        }
-                        ?>
-                    </span>
             </div>
             
             <div class="form-group">
               <label for="district">District</label>
-              <select id="district" name="district" class="form-input" required>
+              <select id="district" name="district" class="form-select" required>
                 <option value="">Select District</option>
               </select>
-              <span class="errormsg" style="color: red;">
-                    <?php
-                        if (isset($errors['district_error'])) {
-                            echo $errors['zone_error'];
-                        }
-                        ?>
-                    </span>
             </div>
             
             <div class="form-group">
               <label for="city">City</label>
-              <select id="city" name="city" class="form-input" required>
+              <select id="city" name="city" class="form-select" required>
                 <option value="">Select City</option>
               </select>
-              <span class="errormsg" style="color: red;">
-                    <?php
-                        if (isset($errors['city_error'])) {
-                            echo $errors['city_error'];
-                        }
-                        ?>
-                    </span>
             </div>
             
             <script>
@@ -454,9 +499,9 @@ $conn->close();
             </div>
 
             <div class="form-group">
-              <label for="confirmPassword">Confirm Password</label>
+              <label for="confirm_password">Confirm Password</label>
               <div class="password-input-wrapper">
-                <input type="password" id="confirm_Password" name="confirm_password" class="form-input" placeholder="Confirm your password" required>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-input" placeholder="Confirm your password" required>
                 <button type="button" class="password-toggle">
                   <i data-lucide="eye"></i>
                 </button>
@@ -472,12 +517,14 @@ $conn->close();
               
             <div class="form-group">
     <label>Gender</label><br>
-    <input type="radio" id="male" name="gender" value="Male" checked>
-    <label for="male">Male</label>
-    <input type="radio" id="female" name="gender" value="Female">
-    <label for="female">Female</label>
-    <input type="radio" id="other" name="gender" value="Other">
-    <label for="other">Other</label>
+    <div class="gender-group">
+        <input type="radio" id="male" name="gender" value="Male" checked>
+        <label for="male">Male</label>
+        <input type="radio" id="female" name="gender" value="Female">
+        <label for="female">Female</label>
+        <input type="radio" id="other" name="gender" value="Other">
+        <label for="other">Other</label>
+    </div>
 </div>
 
             
@@ -493,7 +540,7 @@ $conn->close();
           </form>
 
           <div class="auth-footer">
-            <p>Already have an account? <a href="login.html">Sign in</a></p>
+            <p>Already have an account? <a href="patientlogin.php">Sign in</a></p>
           </div>
         </div>
       </div>

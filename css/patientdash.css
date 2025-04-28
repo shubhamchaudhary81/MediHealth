@@ -249,23 +249,24 @@
     gap: 1rem;
   }
   /* Greeting Section Styling */
-.greeting-container {
+/* .greeting-container {
   background: #f4f4f4;
   padding: 15px;
+  margin-top: 20px;
   text-align: center;
   font-size: 1.5rem;
   font-weight: 600;
   color: #2c3e50;
-  border-bottom: 2px solid #27ae60;
+  border-bottom: 2px solid rgba(74, 144, 226, 0.9);
 }
 
 .greeting-text {
   margin: 0;
-}
+} */
   /* Hero Section */
   .hero {
     padding-top: 7rem;
-    padding-bottom: 5rem;
+    padding-bottom: 2rem;
     background-image: linear-gradient(to bottom right, var(--color-medical-light-gray), var(--color-white));
     position: relative;
     overflow: hidden;
@@ -274,7 +275,7 @@
   .hero-content {
     display: flex;
     flex-direction: column;
-    gap: 4rem;
+    gap: 2rem;
   }
   
   .hero h1 {

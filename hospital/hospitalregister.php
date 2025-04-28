@@ -16,7 +16,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $hospitalName = trim($_POST['hospitalName']);
     $email = trim($_POST['email']);
     $phone = trim($_POST['phone']);
-    $location = trim($_POST['location']);
+    $zone = trim($_POST['zone']);
+    $district = trim($_POST['district']);
+    $city = trim($_POST['city']);
     $website = trim($_POST['website']);
     $departments = isset($_POST['departments']) ? $_POST['departments'] : [];
 
@@ -29,7 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $errors = [];
 
     // Basic Validation
-    if (empty($hospitalName) || empty($email) || empty($phone) || empty($location)) {
+    if (empty($hospitalName) || empty($email) || empty($phone) || empty($zone) || empty($district) || empty($city)) {
         $errors[] = "Please fill all required hospital fields.";
     }
 
@@ -43,53 +45,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (empty($errors)) {
         // Insert hospital
-        $stmt = $conn->prepare("INSERT INTO hospital (name, email, phone, location, website) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO hospital (name, email, phone, zone, district, city, website) VALUES (?, ?, ?, ?, ?, ?, ?)");
         if ($stmt) {
-            $stmt->bind_param("sssss", $hospitalName, $email, $phone, $location, $website);
+            $stmt->bind_param("sssssss", $hospitalName, $email, $phone, $zone, $district, $city, $website);
             if ($stmt->execute()) {
                 $hospital_id = $stmt->insert_id;
                 $stmt->close();
 
-             // Insert departments into hospitaldepartment
-if (!empty($departments)) {
-    foreach ($departments as $deptName) {
-        $deptName = trim($deptName);
+                // Insert departments into hospitaldepartment
+                if (!empty($departments)) {
+                    foreach ($departments as $deptName) {
+                        $deptName = trim($deptName);
 
-        // Get department ID
-        $deptStmt = $conn->prepare("SELECT department_id FROM department WHERE department_name = ?");
-        if ($deptStmt) {
-            $deptStmt->bind_param("s", $deptName);
-            $deptStmt->execute();
-            $deptStmt->store_result();
+                        // Get department ID
+                        $deptStmt = $conn->prepare("SELECT department_id FROM department WHERE department_name = ?");
+                        if ($deptStmt) {
+                            $deptStmt->bind_param("s", $deptName);
+                            $deptStmt->execute();
+                            $deptStmt->store_result();
 
-            if ($deptStmt->num_rows > 0) {
-                $deptStmt->bind_result($deptId);
-                $deptStmt->fetch();
-                $deptStmt->close();
+                            if ($deptStmt->num_rows > 0) {
+                                $deptStmt->bind_result($deptId);
+                                $deptStmt->fetch();
+                                $deptStmt->close();
 
-                // Now insert into hospitaldepartment
-                $insertDeptStmt = $conn->prepare("INSERT INTO hospitaldepartment (hospitalid, department_id) VALUES (?, ?)");
-                if ($insertDeptStmt) {
-                    $insertDeptStmt->bind_param("ii", $hospital_id, $deptId);
-                    if (!$insertDeptStmt->execute()) {
-                        echo "<p style='color:red;'>Failed to insert into hospitaldepartment: " . $insertDeptStmt->error . "</p>";
+                                // Now insert into hospitaldepartment
+                                $insertDeptStmt = $conn->prepare("INSERT INTO hospitaldepartment (hospitalid, department_id) VALUES (?, ?)");
+                                if ($insertDeptStmt) {
+                                    $insertDeptStmt->bind_param("ii", $hospital_id, $deptId);
+                                    if (!$insertDeptStmt->execute()) {
+                                        echo "<p style='color:red;'>Failed to insert into hospitaldepartment: " . $insertDeptStmt->error . "</p>";
+                                    }
+                                    $insertDeptStmt->close();
+                                } else {
+                                    echo "<p style='color:red;'>Prepare insert hospitaldepartment failed: " . $conn->error . "</p>";
+                                }
+                            } else {
+                                echo "<p style='color:red;'>Department '$deptName' not found in department table.</p>";
+                                $deptStmt->close();
+                            }
+                        } else {
+                            echo "<p style='color:red;'>Prepare department lookup failed: " . $conn->error . "</p>";
+                        }
                     }
-                    $insertDeptStmt->close();
                 } else {
-                    echo "<p style='color:red;'>Prepare insert hospitaldepartment failed: " . $conn->error . "</p>";
+                    echo "<p style='color:red;'>No departments selected.</p>";
                 }
-            } else {
-                echo "<p style='color:red;'>Department '$deptName' not found in department table.</p>";
-                $deptStmt->close();
-            }
-        } else {
-            echo "<p style='color:red;'>Prepare department lookup failed: " . $conn->error . "</p>";
-        }
-    }
-} else {
-    echo "<p style='color:red;'>No departments selected.</p>";
-}
-                
 
                 // Insert admin
                 $adminid = generateAdminID($conn);
@@ -100,7 +101,7 @@ if (!empty($departments)) {
                     $adminStmt->execute();
                     $adminStmt->close();
 
-                    header("Location: index.php"); // Redirect on success
+                    header("Location: hospitaladminlogin.php"); // Redirect on success
                     exit;
                 } else {
                     echo "<p style='color:red;'>Admin insert failed: " . $conn->error . "</p>";
@@ -327,20 +328,35 @@ if (!empty($departments)) {
 
       <div class="form-row">
         <div class="form-group">
-          <label for="location">Location</label>
-          <input type="text" id="location" name="location" required>
+          <label for="zone">Zone</label>
+          <select id="zone" name="zone" required>
+            <option value="">Select Zone</option>
+            <option value="Bagmati">Bagmati</option>
+            <option value="Gandaki">Gandaki</option>
+            <option value="Koshi">Koshi</option>
+            <option value="Lumbini">Lumbini</option>
+            <option value="Madhesh">Madhesh</option>
+            <option value="Karnali">Karnali</option>
+            <option value="Sudurpashchim">Sudurpashchim</option>
+          </select>
         </div>
 
-        <!-- <div class="form-group">
-          <label for="type">Hospital Type</label>
-          <select id="type" name="type">
-            <option value="">Select Type</option>
-            <option value="Public">Public</option>
-            <option value="Private">Private</option>
-            <option value="Clinic">Clinic</option>
+        <div class="form-group">
+          <label for="district">District</label>
+          <select id="district" name="district" required>
+            <option value="">Select District</option>
           </select>
-        </div> -->
+        </div>
 
+        <div class="form-group">
+          <label for="city">City</label>
+          <select id="city" name="city" required>
+            <option value="">Select City</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
         <div class="form-group">
           <label for="website">Website (Optional)</label>
           <input type="url" id="website" name="website">
@@ -370,7 +386,7 @@ if (!empty($departments)) {
       </div>
 
       <h3>Admin Details</h3>
-<!-- 
+
       <div class="form-row">
         <div class="form-group">
           <label for="adminName">Admin Name</label>
@@ -383,19 +399,14 @@ if (!empty($departments)) {
         </div>
 
         <div class="form-group">
-          <label for="adminPhone">Admin Contact</label>
+          <label for="adminPhone">Admin Phone</label>
           <input type="tel" id="adminPhone" name="adminPhone" required>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label for="adminUsername">Admin Username</label>
-          <input type="text" id="adminUsername" name="adminUsername" required>
-        </div>
-
-        <div class="form-group">
-          <label for="adminPassword">Admin Password</label>
+          <label for="adminPassword">Password</label>
           <input type="password" id="adminPassword" name="adminPassword" required>
         </div>
 
@@ -407,44 +418,66 @@ if (!empty($departments)) {
 
       <div class="submit-section">
         <button type="submit">Register Hospital</button>
-      </div> -->
-
-      <!-- First row: 3 fields -->
-<div class="form-row" style="grid-template-columns: repeat(3, 1fr);">
-  <div class="form-group">
-    <label for="adminName">Admin Name</label>
-    <input type="text" id="adminName" name="adminName" required>
-  </div>
-
-  <div class="form-group">
-    <label for="adminEmail">Admin Email</label>
-    <input type="email" id="adminEmail" name="adminEmail" required>
-  </div>
-
-  <div class="form-group">
-    <label for="adminPhone">Admin Contact</label>
-    <input type="tel" id="adminPhone" name="adminPhone" required>
-  </div>
-</div>
-
-<!-- Second row: 2 fields -->
-<div class="form-row" style="grid-template-columns: repeat(2, 1fr);">
-  <div class="form-group">
-    <label for="adminPassword">Admin Password</label>
-    <input type="password" id="adminPassword" name="adminPassword" required>
-  </div>
-
-  <div class="form-group">
-    <label for="confirmPassword">Confirm Password</label>
-    <input type="password" id="confirmPassword" name="confirmPassword" required>
-  </div>
-</div>
-
-<div class="submit-section">
-        <button type="submit">Register Hospital</button>
       </div> 
     </form>
   </div>
+
+  <script>
+    const districtsByZone = {
+      "Bagmati": ["Kathmandu", "Lalitpur", "Bhaktapur", "Sindhupalchowk"],
+      "Gandaki": ["Pokhara", "Gorkha", "Lamjung", "Tanahun"],
+      "Koshi": ["Biratnagar", "Jhapa", "Morang", "Sunsari"],
+      "Lumbini": ["Butwal", "Kapilvastu", "Rupandehi", "Palpa"],
+      "Madhesh": ["Janakpur", "Parsa", "Bara", "Dhanusha"],
+      "Karnali": ["Surkhet", "Jumla", "Mugu", "Dailekh"],
+      "Sudurpashchim": ["Dhangadhi", "Kailali", "Kanchanpur", "Dadeldhura"]
+    };
+
+    const citiesByDistrict = {
+      "Kathmandu": ["Kathmandu", "Kirtipur", "Tokha"],
+      "Lalitpur": ["Patan", "Godawari", "Lubhu"],
+      "Bhaktapur": ["Bhaktapur", "Thimi", "Suryabinayak"],
+      "Pokhara": ["Pokhara", "Lekhnath"],
+      "Sunsari": [ "Itahari"],
+      "Morang": ["Biratnagar"],
+      "Butwal": ["Butwal", "Tilottama"],
+      "Janakpur": ["Janakpur", "Mahendranagar"],
+      "Surkhet": ["Surkhet", "Birendranagar"],
+      "Dhangadhi": ["Dhangadhi", "Tikapur"]
+    };
+
+    document.getElementById('zone').addEventListener('change', function() {
+      const districtSelect = document.getElementById('district');
+      const citySelect = document.getElementById('city');
+      districtSelect.innerHTML = '<option value="">Select District</option>';
+      citySelect.innerHTML = '<option value="">Select City</option>';
+      
+      const selectedZone = this.value;
+      if (selectedZone && districtsByZone[selectedZone]) {
+        districtsByZone[selectedZone].forEach(district => {
+          let option = document.createElement('option');
+          option.value = district;
+          option.textContent = district;
+          districtSelect.appendChild(option);
+        });
+      }
+    });
+
+    document.getElementById('district').addEventListener('change', function() {
+      const citySelect = document.getElementById('city');
+      citySelect.innerHTML = '<option value="">Select City</option>';
+      
+      const selectedDistrict = this.value;
+      if (selectedDistrict && citiesByDistrict[selectedDistrict]) {
+        citiesByDistrict[selectedDistrict].forEach(city => {
+          let option = document.createElement('option');
+          option.value = city;
+          option.textContent = city;
+          citySelect.appendChild(option);
+        });
+      }
+    });
+  </script>
 
 </body>
 </html>
