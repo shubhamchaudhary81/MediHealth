@@ -52,7 +52,7 @@
                     <a href="patient/patientlogin.php">Patient Login</a>
                     <a href="doctor/doctorlogin.php">Doctor Login</a>
                     <a href="hospital/hospitaladminlogin.php">Hospital Admin Login</a>
-                    <a href="admin/adminlogin.php">Super Admin Login</a>
+                    <a href="admin/superadminlogin.php">Super Admin Login</a>
                 </div>
             </div>
         </div>

@@ -18,9 +18,24 @@ if (isset($_SESSION['patientID'])) {
 }
 
 // Get current hour
-$hour = date('H');
+// $hour = date('H');
 
 // Determine greeting message
+// if ($hour >= 5 && $hour < 12) {
+//     $greeting = "Good Morning";
+// } elseif ($hour >= 12 && $hour < 17) {
+//     $greeting = "Good Afternoon";
+// } else {
+//     $greeting = "Good Evening";
+// }
+
+// Set timezone to Nepal
+date_default_timezone_set('Asia/Kathmandu');
+
+// Get current hour in 24-hour format
+$hour = date("H");
+
+// Determine greeting based on hour
 if ($hour >= 5 && $hour < 12) {
     $greeting = "Good Morning";
 } elseif ($hour >= 12 && $hour < 17) {
