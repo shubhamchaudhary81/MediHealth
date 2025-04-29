@@ -7,6 +7,21 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'doctor') {
 
 require_once('../config/configdatabase.php');
 
+// Set timezone to Nepal
+date_default_timezone_set('Asia/Kathmandu');
+
+// Get current hour in 24-hour format
+$hour = date("H");
+
+// Determine greeting based on hour
+if ($hour >= 5 && $hour < 12) {
+    $greeting = "Good Morning";
+} elseif ($hour >= 12 && $hour < 17) {
+    $greeting = "Good Afternoon";
+} else {
+    $greeting = "Good Evening";
+}
+
 // Get doctor information
 $doctor_id = $_SESSION['user_id'];
 $query = "SELECT * FROM doctor WHERE doctor_id = ?";
@@ -98,7 +113,7 @@ $patient_stats = $patient_result->fetch_assoc();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediHealth - DoctorDash</title>
+  <title>MediHealth</title>
   <link rel="stylesheet" href="../css/doctordash.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <!-- Font Awesome for icons -->

@@ -18,6 +18,13 @@ $current_action = isset($_GET['action']) ? $_GET['action'] : 'view';
 $hospitals_query = "SELECT id, name FROM hospital ORDER BY name";
 $hospitals_result = $conn->query($hospitals_query);
 
+// Check if query was successful
+if (!$hospitals_result) {
+    $error_message = "Error fetching hospitals: " . $conn->error;
+} else if ($hospitals_result->num_rows === 0) {
+    $error_message = "No hospitals found in the database. Please contact the administrator.";
+}
+
 // Handle file upload
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["report_file"])) {
     $file = $_FILES["report_file"];
@@ -498,11 +505,14 @@ while ($report = $reports_result->fetch_assoc()) {
                         <label for="hospital_id">Hospital</label>
                         <select id="hospital_id" name="hospital_id" required>
                             <option value="">Select Hospital</option>
-                            <?php while ($hospital = $hospitals_result->fetch_assoc()): ?>
-                                <option value="<?php echo $hospital['id']; ?>">
-                                    <?php echo htmlspecialchars($hospital['name']); ?>
-                                </option>
-                            <?php endwhile; ?>
+                            <?php 
+                            if ($hospitals_result && $hospitals_result->num_rows > 0) {
+                                while ($hospital = $hospitals_result->fetch_assoc()) {
+                                    echo '<option value="' . htmlspecialchars($hospital['id']) . '">' . 
+                                         htmlspecialchars($hospital['name']) . '</option>';
+                                }
+                            }
+                            ?>
                         </select>
                     </div>
 
@@ -617,31 +627,34 @@ while ($report = $reports_result->fetch_assoc()) {
             }
         }
 
-        // Add dynamic doctor loading based on hospital selection
-        $(document).ready(function() {
-            $('#hospital_id').change(function() {
-                var hospitalId = $(this).val();
-                if (hospitalId) {
-                    $.ajax({
-                        url: 'fetch_doctor.php',
-                        type: 'POST',
-                        data: { hospital_id: hospitalId },
-                        dataType: 'json',
-                        success: function(data) {
-                            var doctorSelect = $('#doctor_id');
-                            doctorSelect.html('<option value="">Select Doctor</option>');
-                            $.each(data, function(index, doctor) {
-                                doctorSelect.append(`<option value="${doctor.doctor_id}">${doctor.name} - ${doctor.specialization}</option>`);
+        document.getElementById('hospital_id').addEventListener('change', function() {
+            const hospitalId = this.value;
+            const doctorSelect = document.getElementById('doctor_id');
+            
+            // Clear existing options
+            doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+            
+            if (hospitalId) {
+                // Fetch doctors for selected hospital
+                fetch(`get_doctors.php?hospital_id=${hospitalId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            data.doctors.forEach(doctor => {
+                                const option = document.createElement('option');
+                                option.value = doctor.doctor_id;
+                                option.textContent = doctor.name + ' (' + doctor.specialization + ')';
+                                doctorSelect.appendChild(option);
                             });
-                        },
-                        error: function() {
-                            alert('Error fetching doctors');
+                        } else {
+                            alert('Error loading doctors: ' + data.message);
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error loading doctors. Please try again.');
                     });
-                } else {
-                    $('#doctor_id').html('<option value="">Select Hospital First</option>');
-                }
-            });
+            }
         });
     </script>
     <?php

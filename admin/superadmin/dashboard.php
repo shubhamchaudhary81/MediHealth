@@ -330,7 +330,7 @@ $conn->close();
                     <a href="patients.php" class="card-link">View all patients <i class="fas fa-arrow-right"></i></a>
                 </div>
                 
-                <div class="card">
+                <!-- <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Total Appointments</h3>
                         <div class="card-icon" style="background-color: #fd7e14;">
@@ -339,7 +339,7 @@ $conn->close();
                     </div>
                     <p class="card-value"><?php echo $appointment_count; ?></p>
                     <a href="appointments.php" class="card-link">View all appointments <i class="fas fa-arrow-right"></i></a>
-                </div>
+                </div> -->
             </div>
             
             <div class="recent-activity">
