@@ -123,6 +123,7 @@ $deptResult = $conn->query($deptQuery);
       color: #2c3e50;
       font-size: 2.5rem;
       margin-bottom: 1rem;
+      margin-top: 1.5rem;
       font-weight: 600;
     }
 

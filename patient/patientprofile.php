@@ -202,6 +202,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     color: #2c3e50;
     font-size: 2rem;
     margin-bottom: 0.5rem;
+    margin-top: 2rem;
 }
 
 .profile-header p {

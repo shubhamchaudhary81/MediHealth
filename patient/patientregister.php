@@ -253,13 +253,21 @@ $conn->close();
   <style>
     .form-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
         margin-bottom: 20px;
     }
     
     .form-group {
         margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .form-group label {
+        margin-bottom: 0;
+        font-size: 14px;
     }
     
     .form-group.full-width {
@@ -299,6 +307,50 @@ $conn->close();
         border-radius: 5px;
         font-size: 14px;
     }
+
+    .password-input-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .password-input-wrapper input {
+        width: 100%;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+    }
+
+    .form-check label {
+        margin-bottom: 0;
+    }
+
+    .errormsg {
+        color: red;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    .form-group {
+        position: relative;
+    }
+
+    .auth-form {
+        max-width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -324,8 +376,8 @@ $conn->close();
             <div class="form-grid">
               <div class="form-group">
                 <label for="firstName">First Name</label>
-                <input type="text" id="firstName" name="firstName" class="form-input" placeholder="Enter your first name" required>
-                <span class="errormsg" style="color: red;">
+                <input type="text" id="firstName" name="firstName" class="form-input" placeholder="Enter your first name" value="<?php echo isset($_POST['firstName']) ? htmlspecialchars($_POST['firstName']) : ''; ?>" required>
+                <span class="errormsg">
                     <?php
                         if (isset($errors['firstName_error'])) {
                             echo $errors['firstName_error'];
@@ -336,8 +388,8 @@ $conn->close();
               
               <div class="form-group">
                 <label for="lastName">Last Name</label>
-                <input type="text" id="lastName" name="lastName" class="form-input" placeholder="Enter your last name" required>
-                <span class="errormsg" style="color: red;">
+                <input type="text" id="lastName" name="lastName" class="form-input" placeholder="Enter your last name" value="<?php echo isset($_POST['lastName']) ? htmlspecialchars($_POST['lastName']) : ''; ?>" required>
+                <span class="errormsg">
                     <?php
                         if (isset($errors['lastName_error'])) {
                             echo $errors['lastName_error'];
@@ -345,193 +397,152 @@ $conn->close();
                         ?>
                     </span>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email" required>
-              <span class="errormsg" style="color: red;">
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email" value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" required>
+                <span class="errormsg">
                     <?php
                         if (isset($errors['email_error'])) {
                             echo $errors['email_error'];
                         }
                         ?>
                     </span>
+              </div>
             </div>
 
-            <div class="form-group">
-              <label for="dob">Date of Birth</label>
-              <input type="date" id="dob" name="dob" class="form-input" required>
-              <span class="errormsg" style="color: red;">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="dob">Date of Birth</label>
+                <input type="date" id="dob" name="dob" class="form-input" value="<?php echo isset($_POST['dob']) ? htmlspecialchars($_POST['dob']) : ''; ?>" required>
+                <span class="errormsg">
                     <?php
                         if (isset($errors['dob_error'])) {
                             echo $errors['dob_error'];
                         }
                         ?>
                     </span>
-            </div>
+              </div>
 
-            <div class="form-group">
-              <label for="number">Phone Number</label>
-              <input type="tel" id="number" name="number" class="form-input" placeholder="Enter your phone number" required>
-              <span class="errormsg" style="color: red;">
+              <div class="form-group">
+                <label for="number">Phone Number</label>
+                <input type="tel" id="number" name="number" class="form-input" placeholder="Enter your phone number" value="<?php echo isset($_POST['number']) ? htmlspecialchars($_POST['number']) : ''; ?>" required>
+                <span class="errormsg">
                     <?php
                         if (isset($errors['number_error'])) {
                             echo $errors['number_error'];
                         }
                         ?>
                     </span>
-            </div>
-
-            <div class="form-group">
-              <label for="bloodgroup">Blood Group</label>
-              <select id="bloodgroup" name="bloodgroup" class="blood-group-select" required>
-                <option value="">Select Blood Group</option>
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="zone">Zone</label>
-              <select id="zone" name="zone" class="form-select" required>
-                <option value="">Select Zone</option>
-                <option value="Bagmati">Bagmati</option>
-                <option value="Gandaki">Gandaki</option>
-                <option value="Koshi">Koshi</option>
-                <option value="Lumbini">Lumbini</option>
-                <option value="Madhesh">Madhesh</option>
-                <option value="Karnali">Karnali</option>
-                <option value="Sudurpashchim">Sudurpashchim</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="district">District</label>
-              <select id="district" name="district" class="form-select" required>
-                <option value="">Select District</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="city">City</label>
-              <select id="city" name="city" class="form-select" required>
-                <option value="">Select City</option>
-              </select>
-            </div>
-            
-            <script>
-              const districtsByZone = {
-                "Bagmati": ["Kathmandu", "Lalitpur", "Bhaktapur", "Sindhupalchowk"],
-                "Gandaki": ["Pokhara", "Gorkha", "Lamjung", "Tanahun"],
-                "Koshi": ["Biratnagar", "Jhapa", "Morang", "Sunsari"],
-                "Lumbini": ["Butwal", "Kapilvastu", "Rupandehi", "Palpa"],
-                "Madhesh": ["Janakpur", "Parsa", "Bara", "Dhanusha"],
-                "Karnali": ["Surkhet", "Jumla", "Mugu", "Dailekh"],
-                "Sudurpashchim": ["Dhangadhi", "Kailali", "Kanchanpur", "Dadeldhura"]
-              };
-            
-              const citiesByDistrict = {
-                "Kathmandu": ["Kathmandu", "Kirtipur", "Tokha"],
-                "Lalitpur": ["Patan", "Godawari", "Lubhu"],
-                "Bhaktapur": ["Bhaktapur", "Thimi", "Suryabinayak"],
-                "Pokhara": ["Pokhara", "Lekhnath"],
-                "Biratnagar": ["Biratnagar", "Itahari"],
-                "Butwal": ["Butwal", "Tilottama"],
-                "Janakpur": ["Janakpur", "Mahendranagar"],
-                "Surkhet": ["Surkhet", "Birendranagar"],
-                "Dhangadhi": ["Dhangadhi", "Tikapur"]
-              };
-            
-              document.getElementById('zone').addEventListener('change', function() {
-                const districtSelect = document.getElementById('district');
-                const citySelect = document.getElementById('city');
-                districtSelect.innerHTML = '<option value="">Select District</option>';
-                citySelect.innerHTML = '<option value="">Select City</option>';
-                
-                const selectedZone = this.value;
-                if (selectedZone && districtsByZone[selectedZone]) {
-                  districtsByZone[selectedZone].forEach(district => {
-                    let option = document.createElement('option');
-                    option.value = district;
-                    option.textContent = district;
-                    districtSelect.appendChild(option);
-                  });
-                }
-              });
-            
-              document.getElementById('district').addEventListener('change', function() {
-                const citySelect = document.getElementById('city');
-                citySelect.innerHTML = '<option value="">Select City</option>';
-                
-                const selectedDistrict = this.value;
-                if (selectedDistrict && citiesByDistrict[selectedDistrict]) {
-                  citiesByDistrict[selectedDistrict].forEach(city => {
-                    let option = document.createElement('option');
-                    option.value = city;
-                    option.textContent = city;
-                    citySelect.appendChild(option);
-                  });
-                }
-              });
-            </script>
-            <div class="form-group">
-              <label for="password">Password</label>
-              <div class="password-input-wrapper">
-                <input type="password" id="password" name="password" class="form-input" placeholder="Create a password" required>
-                <button type="button" class="password-toggle">
-                  <i data-lucide="eye"></i>
-                </button>
               </div>
-              <span class="errormsg" style="color: red;">
+
+              <div class="form-group">
+                <label for="bloodgroup">Blood Group</label>
+                <select id="bloodgroup" name="bloodgroup" class="blood-group-select" required>
+                  <option value="">Select Blood Group</option>
+                  <option value="A+" <?php echo (isset($_POST['bloodgroup']) && $_POST['bloodgroup'] == 'A+') ? 'selected' : ''; ?>>A+</option>
+                  <option value="A-" <?php echo (isset($_POST['bloodgroup']) && $_POST['bloodgroup'] == 'A-') ? 'selected' : ''; ?>>A-</option>
+                  <option value="B+" <?php echo (isset($_POST['bloodgroup']) && $_POST['bloodgroup'] == 'B+') ? 'selected' : ''; ?>>B+</option>
+                  <option value="B-" <?php echo (isset($_POST['bloodgroup']) && $_POST['bloodgroup'] == 'B-') ? 'selected' : ''; ?>>B-</option>
+                  <option value="AB+" <?php echo (isset($_POST['bloodgroup']) && $_POST['bloodgroup'] == 'AB+') ? 'selected' : ''; ?>>AB+</option>
+                  <option value="AB-" <?php echo (isset($_POST['bloodgroup']) && $_POST['bloodgroup'] == 'AB-') ? 'selected' : ''; ?>>AB-</option>
+                  <option value="O+" <?php echo (isset($_POST['bloodgroup']) && $_POST['bloodgroup'] == 'O+') ? 'selected' : ''; ?>>O+</option>
+                  <option value="O-" <?php echo (isset($_POST['bloodgroup']) && $_POST['bloodgroup'] == 'O-') ? 'selected' : ''; ?>>O-</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="province">Province</label>
+                <select id="province" name="province" class="form-select" required>
+                  <option value="">Select Province</option>
+                  <option value="Province 1" <?php echo (isset($_POST['province']) && $_POST['province'] == 'Province 1') ? 'selected' : ''; ?>>Province 1</option>
+                  <option value="Madhesh" <?php echo (isset($_POST['province']) && $_POST['province'] == 'Madhesh') ? 'selected' : ''; ?>>Madhesh</option>
+                  <option value="Bagmati" <?php echo (isset($_POST['province']) && $_POST['province'] == 'Bagmati') ? 'selected' : ''; ?>>Bagmati</option>
+                  <option value="Gandaki" <?php echo (isset($_POST['province']) && $_POST['province'] == 'Gandaki') ? 'selected' : ''; ?>>Gandaki</option>
+                  <option value="Lumbini" <?php echo (isset($_POST['province']) && $_POST['province'] == 'Lumbini') ? 'selected' : ''; ?>>Lumbini</option>
+                  <option value="Karnali" <?php echo (isset($_POST['province']) && $_POST['province'] == 'Karnali') ? 'selected' : ''; ?>>Karnali</option>
+                  <option value="Sudurpashchim" <?php echo (isset($_POST['province']) && $_POST['province'] == 'Sudurpashchim') ? 'selected' : ''; ?>>Sudurpashchim</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="district">District</label>
+                <select id="district" name="district" class="form-select" required>
+                  <option value="">Select District</option>
+                  <?php
+                  if (isset($_POST['district'])) {
+                      echo '<option value="' . htmlspecialchars($_POST['district']) . '" selected>' . htmlspecialchars($_POST['district']) . '</option>';
+                  }
+                  ?>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="city">City</label>
+                <select id="city" name="city" class="form-select" required>
+                  <option value="">Select City</option>
+                  <?php
+                  if (isset($_POST['city'])) {
+                      echo '<option value="' . htmlspecialchars($_POST['city']) . '" selected>' . htmlspecialchars($_POST['city']) . '</option>';
+                  }
+                  ?>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-input-wrapper">
+                  <input type="password" id="password" name="password" class="form-input" placeholder="Create a password" required>
+                  <button type="button" class="password-toggle">
+                    <i data-lucide="eye"></i>
+                  </button>
+                </div>
+                <span class="errormsg">
                     <?php
                         if (isset($errors['password_error'])) {
                             echo $errors['password_error'];
                         }
                         ?>
                     </span>
-            </div>
-
-            <div class="form-group">
-              <label for="confirm_password">Confirm Password</label>
-              <div class="password-input-wrapper">
-                <input type="password" id="confirm_password" name="confirm_password" class="form-input" placeholder="Confirm your password" required>
-                <button type="button" class="password-toggle">
-                  <i data-lucide="eye"></i>
-                </button>
               </div>
-              <span class="errormsg" style="color: red;">
+
+              <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="password-input-wrapper">
+                  <input type="password" id="confirm_password" name="confirm_password" class="form-input" placeholder="Confirm your password" required>
+                  <button type="button" class="password-toggle">
+                    <i data-lucide="eye"></i>
+                  </button>
+                </div>
+                <span class="errormsg">
                     <?php
                         if (isset($errors['confirm_password_error'])) {
                             echo $errors['confirm_password_error'];
                         }
                         ?>
                     </span>
+              </div>
             </div>
-              
-            <div class="form-group">
-    <label>Gender</label><br>
-    <div class="gender-group">
-        <input type="radio" id="male" name="gender" value="Male" checked>
-        <label for="male">Male</label>
-        <input type="radio" id="female" name="gender" value="Female">
-        <label for="female">Female</label>
-        <input type="radio" id="other" name="gender" value="Other">
-        <label for="other">Other</label>
-    </div>
-</div>
 
-            
+            <div class="form-group">
+              <label>Gender</label>
+              <div class="gender-group">
+                <input type="radio" id="male" name="gender" value="Male" <?php echo (!isset($_POST['gender']) || $_POST['gender'] == 'Male') ? 'checked' : ''; ?>>
+                <label for="male">Male</label>
+                <input type="radio" id="female" name="gender" value="Female" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Female') ? 'checked' : ''; ?>>
+                <label for="female">Female</label>
+                <input type="radio" id="other" name="gender" value="Other" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Other') ? 'checked' : ''; ?>>
+                <label for="other">Other</label>
+              </div>
+            </div>
 
             <div class="form-check">
               <input type="checkbox" id="terms" required>
-              <label for="terms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></label>
+              <label for="terms">I agree to the <a href="terms_and_conditions.pdf" target="_blank">Terms of Service</a> and <a href="privacy_policy.pdf" target="_blank">Privacy Policy</a></label>
             </div>
 
             <button type="submit" class="btn btn-primary btn-full">Create Account</button>
@@ -579,7 +590,117 @@ $conn->close();
       });
     });
 
-    
+    // Province, District, and City Selection
+    const districtsByProvince = {
+      "Province 1": ["Bhojpur", "Dhankuta", "Ilam", "Jhapa", "Khotang", "Morang", "Okhaldhunga", "Panchthar", "Sankhuwasabha", "Solukhumbu", "Sunsari", "Taplejung", "Terhathum", "Udayapur"],
+      "Madhesh": ["Bara", "Dhanusha", "Mahottari", "Parsa", "Rautahat", "Saptari", "Sarlahi", "Siraha"],
+      "Bagmati": ["Bhaktapur", "Chitwan", "Dhading", "Dolakha", "Kathmandu", "Kavrepalanchok", "Lalitpur", "Makwanpur", "Nuwakot", "Ramechhap", "Rasuwa", "Sindhuli", "Sindhupalchok"],
+      "Gandaki": ["Baglung", "Gorkha", "Kaski", "Lamjung", "Manang", "Mustang", "Myagdi", "Nawalpur", "Parbat", "Syangja", "Tanahu"],
+      "Lumbini": ["Arghakhanchi", "Banke", "Bardiya", "Dang", "Eastern Rukum", "Gulmi", "Kapilvastu", "Palpa", "Parasi", "Pyuthan", "Rolpa", "Rupandehi"],
+      "Karnali": ["Dailekh", "Dolpa", "Humla", "Jajarkot", "Jumla", "Kalikot", "Mugu", "Salyan", "Surkhet", "Western Rukum"],
+      "Sudurpashchim": ["Achham", "Baitadi", "Bajhang", "Bajura", "Dadeldhura", "Darchula", "Doti", "Kailali", "Kanchanpur"]
+    };
+
+    const citiesByDistrict = {
+      "Kathmandu": ["Kathmandu", "Kirtipur", "Tokha", "Budhanilkantha", "Gokarneshwar", "Chandragiri", "Tarakeshwar", "Dakshinkali", "Nagarkot", "Sankhu", "Koteshwor", "Boudha", "Patan", "Thamel", "New Baneshwor"],
+      "Lalitpur": ["Patan", "Godawari", "Lubhu", "Imadol", "Harisiddhi", "Thaiba", "Chapagaun", "Bungamati", "Karyabinayak", "Jawalakhel", "Kupondole", "Pulchowk", "Kumaripati"],
+      "Bhaktapur": ["Bhaktapur", "Thimi", "Suryabinayak", "Changunarayan", "Madhyapur Thimi", "Nagarkot", "Suryamati", "Nangkhel", "Duwakot"],
+      "Pokhara": ["Pokhara", "Lekhnath", "Bagar", "Hemja", "Sarangkot", "Lakeside", "Bindyabasini", "Matepani", "Pumdibhumdi", "Srijana Chowk", "Mahendrapool", "Chipledhunga"],
+      "Biratnagar": ["Biratnagar", "Biratchowk", "Letang", "Urlabari", "Rangeli", "Sundarharaincha", "Belbari", "Damak", "Itahari", "Dharan"],
+      "Butwal": ["Butwal", "Tilottama", "Devdaha", "Lumbini", "Siddharthanagar", "Manigram", "Sainamaina", "Tansen", "Bhairahawa"],
+      "Nepalgunj": ["Nepalgunj", "Kohalpur", "Khajura", "Narainapur", "Rapti Sonari", "Gulariya", "Rajapur"],
+      "Dhangadhi": ["Dhangadhi", "Tikapur", "Lamki", "Ghodaghodi", "Attariya", "Gauriganga", "Kailali", "Mahendranagar"],
+      "Surkhet": ["Surkhet", "Birendranagar", "Chhinchu", "Gurbhakot", "Panchpuri", "Bheriganga", "Lekbesi"],
+      "Jumla": ["Jumla", "Chandannath", "Tatopani", "Patarasi", "Sinja", "Hima"],
+      "Dhankuta": ["Dhankuta", "Pakhribas", "Mahalaxmi", "Pakhribas", "Khalsa Chhintang Sahidbhumi"],
+      "Ilam": ["Ilam", "Pashupatinagar", "Suryodaya", "Mai", "Mangalbare", "Phakphok"],
+      "Jhapa": ["Bhadrapur", "Damak", "Mechinagar", "Birtamod", "Arjundhara", "Kankai", "Gauradaha"],
+      "Morang": ["Biratnagar", "Biratchowk", "Letang", "Urlabari", "Rangeli", "Sundarharaincha", "Belbari", "Pathari", "Budhiganga"],
+      "Sunsari": ["Itahari", "Dharan", "Inaruwa", "Duhabi", "Ramdhuni", "Barahachhetra", "Dewanganj", "Simariya"],
+      "Chitwan": ["Bharatpur", "Ratnanagar", "Kalika", "Khairahani", "Madi", "Rapti", "Ichchhakamana"],
+      "Kaski": ["Pokhara", "Lekhnath", "Annapurna", "Machhapuchhre", "Madi", "Rupa"],
+      "Rupandehi": ["Butwal", "Tilottama", "Devdaha", "Lumbini", "Siddharthanagar", "Sainamaina", "Marchawari", "Kotahimai"],
+      "Kapilvastu": ["Taulihawa", "Buddhabhumi", "Kapilvastu", "Maharajgunj", "Yashodhara", "Shivaraj", "Banganga"],
+      "Banke": ["Nepalgunj", "Kohalpur", "Narainapur", "Rapti Sonari", "Khajura", "Janaki", "Duduwa"],
+      "Bardiya": ["Gulariya", "Rajapur", "Madhuwan", "Thakurbaba", "Barbardiya", "Bansgadhi"],
+      "Dang": ["Ghorahi", "Tulsipur", "Lamahi", "Bangalachuli", "Shantinagar", "Rapti", "Gadhawa"],
+      "Kailali": ["Dhangadhi", "Tikapur", "Lamki", "Ghodaghodi", "Attariya", "Gauriganga", "Bhajani"],
+      "Kanchanpur": ["Mahendranagar", "Bhimdatta", "Punarbas", "Bedkot", "Shuklaphanta", "Belauri", "Krishnapur"]
+    };
+
+    // Function to update district options
+    function updateDistricts() {
+      const provinceSelect = document.getElementById('province');
+      const districtSelect = document.getElementById('district');
+      const citySelect = document.getElementById('city');
+      
+      if (!provinceSelect || !districtSelect || !citySelect) {
+        console.error('Required select elements not found');
+        return;
+      }
+
+      // Clear previous options
+      districtSelect.innerHTML = '<option value="">Select District</option>';
+      citySelect.innerHTML = '<option value="">Select City</option>';
+      
+      const selectedProvince = provinceSelect.value;
+      if (selectedProvince && districtsByProvince[selectedProvince]) {
+        districtsByProvince[selectedProvince].forEach(district => {
+          const option = document.createElement('option');
+          option.value = district;
+          option.textContent = district;
+          districtSelect.appendChild(option);
+        });
+      }
+    }
+
+    // Function to update city options
+    function updateCities() {
+      const districtSelect = document.getElementById('district');
+      const citySelect = document.getElementById('city');
+      
+      if (!districtSelect || !citySelect) {
+        console.error('Required select elements not found');
+        return;
+      }
+
+      // Clear previous options
+      citySelect.innerHTML = '<option value="">Select City</option>';
+      
+      const selectedDistrict = districtSelect.value;
+      if (selectedDistrict && citiesByDistrict[selectedDistrict]) {
+        citiesByDistrict[selectedDistrict].forEach(city => {
+          const option = document.createElement('option');
+          option.value = city;
+          option.textContent = city;
+          citySelect.appendChild(option);
+        });
+      }
+    }
+
+    // Wait for the DOM to be fully loaded
+    window.addEventListener('load', function() {
+      // Get the select elements
+      const provinceSelect = document.getElementById('province');
+      const districtSelect = document.getElementById('district');
+      
+      if (!provinceSelect || !districtSelect) {
+        console.error('Required select elements not found');
+        return;
+      }
+
+      // Add event listeners
+      provinceSelect.addEventListener('change', updateDistricts);
+      districtSelect.addEventListener('change', updateCities);
+
+      // Initialize selections if values are already selected
+      if (provinceSelect.value) {
+        updateDistricts();
+        if (districtSelect.value) {
+          updateCities();
+        }
+      }
+    });
   </script>
   
 
