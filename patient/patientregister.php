@@ -542,7 +542,7 @@ $conn->close();
 
             <div class="form-check">
               <input type="checkbox" id="terms" required>
-              <label for="terms">I agree to the <a href="terms_and_conditions.pdf" target="_blank">Terms of Service</a> and <a href="privacy_policy.pdf" target="_blank">Privacy Policy</a></label>
+              <label for="terms">I agree to the <a href="MediHealth_Terms_And_Condition(1).pdf" target="_blank">Terms of Service</a> and <a href="MediHealth_Privacy_Policy(1).pdf" target="_blank">Privacy Policy</a></label>
             </div>
 
             <button type="submit" class="btn btn-primary btn-full">Create Account</button>
@@ -644,6 +644,7 @@ $conn->close();
       citySelect.innerHTML = '<option value="">Select City</option>';
       
       const selectedProvince = provinceSelect.value;
+      
       if (selectedProvince && districtsByProvince[selectedProvince]) {
         districtsByProvince[selectedProvince].forEach(district => {
           const option = document.createElement('option');
@@ -668,6 +669,7 @@ $conn->close();
       citySelect.innerHTML = '<option value="">Select City</option>';
       
       const selectedDistrict = districtSelect.value;
+      
       if (selectedDistrict && citiesByDistrict[selectedDistrict]) {
         citiesByDistrict[selectedDistrict].forEach(city => {
           const option = document.createElement('option');
@@ -678,27 +680,17 @@ $conn->close();
       }
     }
 
-    // Wait for the DOM to be fully loaded
-    window.addEventListener('load', function() {
-      // Get the select elements
+    // Add event listeners
+    document.addEventListener('DOMContentLoaded', function() {
       const provinceSelect = document.getElementById('province');
       const districtSelect = document.getElementById('district');
       
-      if (!provinceSelect || !districtSelect) {
-        console.error('Required select elements not found');
-        return;
+      if (provinceSelect) {
+        provinceSelect.addEventListener('change', updateDistricts);
       }
-
-      // Add event listeners
-      provinceSelect.addEventListener('change', updateDistricts);
-      districtSelect.addEventListener('change', updateCities);
-
-      // Initialize selections if values are already selected
-      if (provinceSelect.value) {
-        updateDistricts();
-        if (districtSelect.value) {
-          updateCities();
-        }
+      
+      if (districtSelect) {
+        districtSelect.addEventListener('change', updateCities);
       }
     });
   </script>

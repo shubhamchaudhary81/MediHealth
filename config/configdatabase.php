@@ -37,7 +37,7 @@ $tableSql = "CREATE TABLE IF NOT EXISTS patients (
     email VARCHAR(100) UNIQUE NOT NULL,
     number VARCHAR(15) NOT NULL,
     dob DATE NOT NULL,
-    zone VARCHAR(50) NOT NULL,
+    province VARCHAR(50) NOT NULL,
     district VARCHAR(50) NOT NULL,
     city VARCHAR(50) NOT NULL,
     bloodgroup VARCHAR(5) NOT NULL,

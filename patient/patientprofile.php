@@ -161,7 +161,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 <div class="form-group">
                     <label for="zone">Zone</label>
-                    <input type="text" id="zone" name="zone" value="<?php echo htmlspecialchars($patient['zone']); ?>" required>
+                    <input type="text" id="zone" name="zone" value="<?php echo htmlspecialchars($patient['province']); ?>" required>
                 </div>
 
                 <div class="form-group">

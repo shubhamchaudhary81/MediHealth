@@ -18,13 +18,6 @@ $current_action = isset($_GET['action']) ? $_GET['action'] : 'view';
 $hospitals_query = "SELECT id, name FROM hospital ORDER BY name";
 $hospitals_result = $conn->query($hospitals_query);
 
-// Check if query was successful
-if (!$hospitals_result) {
-    $error_message = "Error fetching hospitals: " . $conn->error;
-} else if ($hospitals_result->num_rows === 0) {
-    $error_message = "No hospitals found in the database. Please contact the administrator.";
-}
-
 // Handle file upload
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["report_file"])) {
     $file = $_FILES["report_file"];
@@ -36,43 +29,68 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["report_file"])) {
     
     // Validate inputs
     if (empty($report_title) || empty($report_date) || empty($report_type) || empty($hospital_id) || empty($doctor_id)) {
-        $error_message = "All fields are required";
+        $error_message = "All fields are required.";
     } else {
-        // Handle file upload
-        $target_dir = "../uploads/reports/";
-        if (!file_exists($target_dir)) {
-            mkdir($target_dir, 0777, true);
-        }
+        // First verify if doctor exists in the database
+        $check_doctor = $conn->prepare("SELECT doctor_id FROM doctor WHERE doctor_id = ?");
+        $check_doctor->bind_param("s", $doctor_id);
+        $check_doctor->execute();
+        $doctor_exists = $check_doctor->get_result();
         
-        $file_extension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
-        $new_filename = uniqid() . '.' . $file_extension;
-        $target_file = $target_dir . $new_filename;
-        
-        // Check file type
-        $allowed_types = array("pdf", "jpg", "jpeg", "png");
-        if (!in_array($file_extension, $allowed_types)) {
-            $error_message = "Sorry, only PDF, JPG, JPEG & PNG files are allowed.";
+        if ($doctor_exists->num_rows === 0) {
+            $error_message = "Selected doctor does not exist in the database.";
         } else {
-            if (move_uploaded_file($file["tmp_name"], $target_file)) {
-                // Insert report into database
-                $stmt = $conn->prepare("INSERT INTO patient_reports (patient_id, hospital_id, doctor_id, report_title, report_date, report_type, file_path) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("iiissss", $patient_id, $hospital_id, $doctor_id, $report_title, $report_date, $report_type, $target_file);
-                
-                if ($stmt->execute()) {
-                    $success_message = "Report uploaded successfully!";
-                    $current_action = 'view'; // Redirect to view after successful upload
-                } else {
-                    $error_message = "Error uploading report to database.";
-                }
-                $stmt->close();
+            // Then verify doctor is associated with the selected hospital
+            $verify_doctor = $conn->prepare("SELECT doctor_id FROM doctor WHERE doctor_id = ? AND hospitalid = ?");
+            $verify_doctor->bind_param("si", $doctor_id, $hospital_id);
+            $verify_doctor->execute();
+            $doctor_result = $verify_doctor->get_result();
+            
+            if ($doctor_result->num_rows === 0) {
+                $error_message = "Selected doctor is not associated with the chosen hospital.";
             } else {
-                $error_message = "Sorry, there was an error uploading your file.";
+                // Handle file upload
+                $target_dir = "../uploads/reports/";
+                if (!file_exists($target_dir)) {
+                    mkdir($target_dir, 0777, true);
+                }
+                
+                $file_extension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
+                $new_filename = uniqid() . '.' . $file_extension;
+                $target_file = $target_dir . $new_filename;
+                
+                $allowed_types = array("pdf", "jpg", "jpeg", "png");
+                if (!in_array($file_extension, $allowed_types)) {
+                    $error_message = "Only PDF, JPG, JPEG & PNG files are allowed.";
+                } else {
+                    if (move_uploaded_file($file["tmp_name"], $target_file)) {
+                        // Insert report into database
+                        $stmt = $conn->prepare("INSERT INTO patient_reports (patient_id, hospital_id, doctor_id, report_title, report_date, report_type, file_path) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                        if ($stmt === false) {
+                            $error_message = "Error preparing statement: " . $conn->error;
+                        } else {
+                            $stmt->bind_param("iisssss", $patient_id, $hospital_id, $doctor_id, $report_title, $report_date, $report_type, $target_file);
+                            
+                            if ($stmt->execute()) {
+                                $success_message = "Report uploaded successfully!";
+                                $current_action = 'view';
+                            } else {
+                                $error_message = "Error uploading report to database: " . $stmt->error;
+                            }
+                            $stmt->close();
+                        }
+                    } else {
+                        $error_message = "Error uploading the file.";
+                    }
+                }
             }
+            $verify_doctor->close();
         }
+        $check_doctor->close();
     }
 }
 
-// Fetch patient's reports with hospital and doctor information
+// Fetch patient's reports
 $reports_query = "SELECT pr.*, h.name as hospital_name, d.name as doctor_name, d.specialization 
                  FROM patient_reports pr 
                  JOIN hospital h ON pr.hospital_id = h.id 
@@ -84,17 +102,17 @@ $stmt->bind_param("i", $patient_id);
 $stmt->execute();
 $reports_result = $stmt->get_result();
 
-// Group reports by hospital and doctor
-$grouped_reports = array();
+// Group by hospital and doctor
+$grouped_reports = [];
 while ($report = $reports_result->fetch_assoc()) {
     $key = $report['hospital_id'] . '_' . $report['doctor_id'];
     if (!isset($grouped_reports[$key])) {
-        $grouped_reports[$key] = array(
+        $grouped_reports[$key] = [
             'hospital_name' => $report['hospital_name'],
             'doctor_name' => $report['doctor_name'],
             'specialization' => $report['specialization'],
-            'reports' => array()
-        );
+            'reports' => []
+        ];
     }
     $grouped_reports[$key]['reports'][] = $report;
 }
@@ -463,6 +481,116 @@ while ($report = $reports_result->fetch_assoc()) {
                 flex-direction: column;
             }
         }
+
+        .reports-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background: var(--white);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .reports-table th,
+        .reports-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .reports-table th {
+            background: var(--primary-color);
+            color: var(--white);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .reports-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .reports-table tr:hover {
+            background: var(--light-bg);
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-start;
+        }
+
+        .table-action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .table-action-btn i {
+            font-size: 1rem;
+        }
+
+        .table-action-btn.view {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .table-action-btn.download {
+            background: var(--secondary-color);
+            color: var(--white);
+        }
+
+        .table-action-btn.delete {
+            background: var(--danger-color);
+            color: var(--white);
+        }
+
+        .table-action-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .hospital-doctor-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .hospital-name {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .doctor-info {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .reports-table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            .table-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .table-action-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -568,53 +696,64 @@ while ($report = $reports_result->fetch_assoc()) {
                         No reports found. Please upload a report.
                     </div>
                 <?php else: ?>
-                    <?php foreach ($grouped_reports as $group): ?>
-                        <div class="report-group">
-                            <div class="report-group-header">
-                                <div class="hospital-doctor-info">
-                                    <div class="hospital-name">
-                                        <i class="fas fa-hospital"></i>
-                                        <?php echo htmlspecialchars($group['hospital_name']); ?>
-                                    </div>
-                                    <div class="doctor-info">
-                                        <i class="fas fa-user-md"></i>
-                                        Dr. <?php echo htmlspecialchars($group['doctor_name']); ?>
-                                        <span class="doctor-specialization">
-                                            (<?php echo htmlspecialchars($group['specialization']); ?>)
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="reports-grid">
+                    <table class="reports-table">
+                        <thead>
+                            <tr>
+                                <th>Hospital & Doctor</th>
+                                <th>Report Title</th>
+                                <th>Report Type</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($grouped_reports as $group): ?>
                                 <?php foreach ($group['reports'] as $report): ?>
-                                    <div class="report-card">
-                                        <div class="report-header">
-                                            <span class="report-title"><?php echo htmlspecialchars($report['report_title']); ?></span>
-                                            <span class="report-type"><?php echo htmlspecialchars($report['report_type']); ?></span>
-                                        </div>
-                                        <div class="report-date">
+                                    <tr>
+                                        <td>
+                                            <div class="hospital-doctor-info">
+                                                <span class="hospital-name">
+                                                    <i class="fas fa-hospital"></i>
+                                                    <?php echo htmlspecialchars($group['hospital_name']); ?>
+                                                </span>
+                                                <span class="doctor-info">
+                                                    <i class="fas fa-user-md"></i>
+                                                    Dr. <?php echo htmlspecialchars($group['doctor_name']); ?>
+                                                    (<?php echo htmlspecialchars($group['specialization']); ?>)
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($report['report_title']); ?></td>
+                                        <td>
+                                            <span class="report-type">
+                                                <?php echo htmlspecialchars($report['report_type']); ?>
+                                            </span>
+                                        </td>
+                                        <td>
                                             <i class="far fa-calendar"></i>
                                             <?php echo date('F j, Y', strtotime($report['report_date'])); ?>
-                                        </div>
-                                        <div class="report-actions">
-                                            <a href="<?php echo $report['file_path']; ?>" target="_blank" class="btn-action btn-view">
-                                                <i class="fas fa-eye"></i>
-                                                View
-                                            </a>
-                                            <a href="<?php echo $report['file_path']; ?>" download class="btn-action btn-download">
-                                                <i class="fas fa-download"></i>
-                                                Download
-                                            </a>
-                                            <button class="btn-action btn-delete" onclick="deleteReport(<?php echo $report['report_id']; ?>)">
-                                                <i class="fas fa-trash"></i>
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </div>
+                                        </td>
+                                        <td>
+                                            <div class="table-actions">
+                                                <a href="<?php echo $report['file_path']; ?>" target="_blank" class="table-action-btn view">
+                                                    <i class="fas fa-eye"></i>
+                                                    View
+                                                </a>
+                                                <a href="<?php echo $report['file_path']; ?>" download class="table-action-btn download">
+                                                    <i class="fas fa-download"></i>
+                                                    Download
+                                                </a>
+                                                <button onclick="deleteReport(<?php echo $report['report_id']; ?>)" class="table-action-btn delete">
+                                                    <i class="fas fa-trash"></i>
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 <?php endforeach; ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 <?php endif; ?>
             </div>
         <?php endif; ?>

@@ -362,7 +362,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               <label for="zone">Province</label>
               <select id="zone" name="zone" required>
                 <option value="">Select Province</option>
-                <option value="Koshi">Koshi Province</option>
+                <option value="Koshi">Province 1</option>
                 <option value="Madhesh">Madhesh Province</option>
                 <option value="Bagmati">Bagmati Province</option>
                 <option value="Gandaki">Gandaki Province</option>

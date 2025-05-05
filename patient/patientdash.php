@@ -1,5 +1,5 @@
 <?php
-session_start();
+// session_start();
 include_once('../include/header.php');
 include_once('../config/configdatabase.php');
 
