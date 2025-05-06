@@ -44,38 +44,63 @@ if ($_SERVER["REQUEST_METHOD"] == 'POST') {
 
     // Check if the selected time slot is available
     if (empty($errors)) {
-        $checkAvailability = "SELECT COUNT(*) as count FROM appointments 
-                            WHERE doctor_id = ? 
-                            AND appointment_date = ? 
-                            AND appointment_time = ? 
-                            AND status != 'cancelled'";
+        // Get doctor's schedule for the day
+        $day_of_week = date('l', strtotime($appointment_date));
+        $schedule_query = "SELECT max_patients 
+                          FROM doctor_schedule 
+                          WHERE doctor_id = ? AND day = ?";
         
-        $stmt = $conn->prepare($checkAvailability);
+        $stmt = $conn->prepare($schedule_query);
         if ($stmt === false) {
             $errors['db_error'] = "Prepare failed: " . $conn->error;
         } else {
-            $stmt->bind_param("sss", $doctor_id, $appointment_date, $appointment_time);
+            $stmt->bind_param("ss", $doctor_id, $day_of_week);
             $stmt->execute();
             $result = $stmt->get_result();
-            $row = $result->fetch_assoc();
             
-            if ($row['count'] > 0) {
-                $errors['time_error'] = "This time slot is already booked. Please select another time.";
+            if ($result->num_rows === 0) {
+                $errors['time_error'] = "Doctor is not available on this day.";
+            } else {
+                $schedule = $result->fetch_assoc();
+                $max_patients = $schedule['max_patients'];
+                
+                // Check current bookings for this time slot
+                $check_query = "SELECT COUNT(*) as count 
+                               FROM appointments 
+                               WHERE doctor_id = ? 
+                               AND appointment_date = ? 
+                               AND appointment_time = ? 
+                               AND status != 'cancelled'";
+                
+                $stmt = $conn->prepare($check_query);
+                $stmt->bind_param("sss", $doctor_id, $appointment_date, $appointment_time);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $row = $result->fetch_assoc();
+                
+                if ($row['count'] >= $max_patients) {
+                    $errors['time_error'] = "This time slot is already full. Please select another time.";
+                }
             }
             $stmt->close();
         }
     }
 
     if (empty($errors)) {
-        // Insert the appointment
-        $insertQuery = "INSERT INTO appointments 
-            (patient_id, hospital_id, department_id, doctor_id, appointment_date, appointment_time, reason) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)";
+        // Start transaction
+        $conn->begin_transaction();
+        
+        try {
+            // Insert the appointment
+            $insertQuery = "INSERT INTO appointments 
+                (patient_id, hospital_id, department_id, doctor_id, appointment_date, appointment_time, reason, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled')";
 
-        $stmt = $conn->prepare($insertQuery);
-        if ($stmt === false) {
-            $errors['db_error'] = "Prepare failed: " . $conn->error;
-        } else {
+            $stmt = $conn->prepare($insertQuery);
+            if ($stmt === false) {
+                throw new Exception("Prepare failed: " . $conn->error);
+            }
+
             // Convert date and time to proper format
             $formatted_date = date('Y-m-d', strtotime($appointment_date));
             $formatted_time = date('H:i:s', strtotime($appointment_time));
@@ -90,21 +115,76 @@ if ($_SERVER["REQUEST_METHOD"] == 'POST') {
                 $reason
             );
 
-            if ($stmt->execute()) {
-                $_SESSION['success_message'] = "Appointment booked successfully!";
-                header("Location: patientdash.php");
-                exit();
-            } else {
-                $errors['db_error'] = "Error: " . $stmt->error;
+            if (!$stmt->execute()) {
+                throw new Exception("Error inserting appointment: " . $stmt->error);
             }
-            $stmt->close();
+
+            // Commit transaction
+            $conn->commit();
+            
+            $_SESSION['success_message'] = "Appointment booked successfully!";
+            header("Location: patientdash.php");
+            exit();
+            
+        } catch (Exception $e) {
+            // Rollback transaction on error
+            $conn->rollback();
+            $errors['db_error'] = "Error: " . $e->getMessage();
         }
     }
 }
 
-$conn->close();
+// $conn->close();
 
 include_once('../include/header.php');
+
+// Get doctor's schedule for the selected date
+$day_of_week = date('l', strtotime($selected_date));
+$schedule_query = "SELECT from_time, to_time, max_patients 
+                  FROM doctor_schedule 
+                  WHERE doctor_id = ? AND day = ?";
+$stmt = $conn->prepare($schedule_query);
+$stmt->bind_param("ss", $doctor_id, $day_of_week);
+$stmt->execute();
+$schedule_result = $stmt->get_result();
+
+// Get booked appointments for the selected date
+$booked_query = "SELECT appointment_time, COUNT(*) as booked_count 
+                 FROM appointments 
+                 WHERE doctor_id = ? AND appointment_date = ? 
+                 GROUP BY appointment_time";
+$stmt = $conn->prepare($booked_query);
+$stmt->bind_param("ss", $doctor_id, $selected_date);
+$stmt->execute();
+$booked_result = $stmt->get_result();
+
+// Create an array of booked appointments with their counts
+$booked_slots = [];
+while ($booked = $booked_result->fetch_assoc()) {
+    $booked_slots[$booked['appointment_time']] = $booked['booked_count'];
+}
+
+// Generate available time slots
+$available_slots = [];
+while ($schedule = $schedule_result->fetch_assoc()) {
+    $from_time = strtotime($schedule['from_time']);
+    $to_time = strtotime($schedule['to_time']);
+    $max_patients = $schedule['max_patients'];
+    
+    // Check each 30-minute slot
+    for ($time = $from_time; $time < $to_time; $time += 1800) { // 1800 seconds = 30 minutes
+        $time_slot = date('H:i:s', $time);
+        $booked_count = isset($booked_slots[$time_slot]) ? $booked_slots[$time_slot] : 0;
+        
+        if ($booked_count < $max_patients) {
+            $available_slots[] = [
+                'time' => date('h:i A', $time),
+                'value' => $time_slot,
+                'available' => $max_patients - $booked_count
+            ];
+        }
+    }
+}
 
 ?>
 
@@ -190,11 +270,15 @@ include_once('../include/header.php');
                 </div>
 
                 <div class="form-group">
-                    <label for="time">Appointment Time</label>
-                    <select id="time" name="appointment_time" class="form-select" required>
-                        <option value="" disabled selected>Select date first</option>
+                    <label for="appointment_time">Select Time Slot</label>
+                    <select name="appointment_time" id="appointment_time" class="form-control" required>
+                        <option value="">Select a time slot</option>
+                        <?php foreach ($available_slots as $slot): ?>
+                            <option value="<?php echo $slot['value']; ?>">
+                                <?php echo $slot['time']; ?> (<?php echo $slot['available']; ?> slots available)
+                            </option>
+                        <?php endforeach; ?>
                     </select>
-                    <span class="error-message" id="timeError"></span>
                 </div>
 
                 <div class="form-group">
@@ -293,20 +377,33 @@ $(document).ready(function() {
     // City change handler
     $('#city').change(function() {
         var city = $(this).val();
+        console.log('Selected city:', city); // Debug log
+        
         if (city) {
+            // Show loading state
+            let hospitalSelect = $("#hospital");
+            hospitalSelect.html('<option value="" disabled selected>Loading hospitals...</option>');
+            
             $.ajax({
                 url: "fetch_hospital.php",
                 type: "POST",
                 data: { city: city },
                 dataType: "json",
                 success: function(data) {
-                    let hospitalSelect = $("#hospital");
+                    console.log('Received data:', data); // Debug log
+                    
                     hospitalSelect.html('<option value="" disabled selected>Select Hospital</option>');
 
                     if (data.error) {
-                        alert(data.error);
+                        console.error("Server error:", data.error);
+                        hospitalSelect.html('<option value="" disabled>Error: ' + data.error + '</option>');
+                    } else if (!Array.isArray(data) || data.length === 0) {
+                        console.log('No hospitals found for city:', city);
+                        hospitalSelect.html('<option value="" disabled>No hospitals found in this city</option>');
                     } else {
+                        console.log('Adding hospitals to dropdown:', data.length);
                         $.each(data, function(index, hospital) {
+                            console.log('Adding hospital:', hospital);
                             hospitalSelect.append(`<option value="${hospital.id}">${hospital.name}</option>`);
                         });
                     }
@@ -315,13 +412,27 @@ $(document).ready(function() {
                     $("#department").html('<option value="" disabled selected>Select hospital first</option>');
                     $("#doctor").html('<option value="" disabled selected>Select department first</option>');
                     $("#date").html('<option value="" disabled selected>Select doctor first</option>');
-                    $("#time").html('<option value="" disabled selected>Select date first</option>');
+                    $("#appointment_time").html('<option value="" disabled selected>Select date first</option>');
                 },
                 error: function(xhr, status, error) {
                     console.error("Error fetching hospitals:", error);
-                    alert("Error fetching hospitals. Please try again.");
+                    console.error("Status:", status);
+                    console.error("Response:", xhr.responseText);
+                    hospitalSelect.html('<option value="" disabled>Error loading hospitals. Please try again.</option>');
+                    
+                    // Show error in console for debugging
+                    console.log('XHR Status:', xhr.status);
+                    console.log('XHR Status Text:', xhr.statusText);
+                    console.log('XHR Response:', xhr.responseText);
                 }
             });
+        } else {
+            console.log('No city selected');
+            $("#hospital").html('<option value="" disabled selected>Select city first</option>');
+            $("#department").html('<option value="" disabled selected>Select hospital first</option>');
+            $("#doctor").html('<option value="" disabled selected>Select department first</option>');
+            $("#date").html('<option value="" disabled selected>Select doctor first</option>');
+            $("#appointment_time").html('<option value="" disabled selected>Select date first</option>');
         }
     });
 
@@ -424,66 +535,50 @@ $(document).ready(function() {
     
     $('#date').on('change', function() {
         var doctorId = $('#doctor').val();
-        var selectedDay = $(this).val();
+        var selectedDate = $(this).val();
         
-        console.log('Selected day:', selectedDay);
-        console.log('Doctor ID:', doctorId);
-        
-        if (doctorId && selectedDay) {
+        if (doctorId && selectedDate) {
             // Fetch doctor's schedule
             $.ajax({
-                url: 'fetch_doctor_schedule.php',
+                url: 'fetch_available_slots.php',
                 type: 'POST',
                 data: { 
                     doctor_id: doctorId,
-                    day: selectedDay
+                    appointment_date: selectedDate
                 },
                 dataType: 'json',
                 success: function(response) {
-                    console.log('Schedule data:', response);
-                    
                     // Clear existing options
-                    $('#time').empty();
-                    $('#time').append('<option value="">Select Time</option>');
+                    $('#appointment_time').empty();
+                    $('#appointment_time').append('<option value="">Select Time Slot</option>');
                     
-                    if (response && response.time_slots) {
-                        // Split the time slots string into an array
-                        var timeSlots = response.time_slots.split(',');
-                        console.log('Time slots:', timeSlots);
-                        
-                        // Add time slots to the dropdown
-                        timeSlots.forEach(function(time) {
-                            // Skip empty time slots
-                            if (!time || time.trim() === '') {
-                                return;
-                            }
+                    if (response && response.length > 0) {
+                        // Add schedule slots to the dropdown
+                        response.forEach(function(slot) {
+                            var status = slot.available > 0 ? 
+                                `${slot.available} slots available` : 
+                                'Slot is full';
                             
-                            // Convert 24-hour format to 12-hour format for display
-                            var timeParts = time.split(':');
-                            var hours = parseInt(timeParts[0]);
-                            var minutes = timeParts[1];
-                            var ampm = hours >= 12 ? 'PM' : 'AM';
-                            hours = hours % 12;
-                            hours = hours ? hours : 12; // Convert 0 to 12
-                            var displayTime = hours + ':' + minutes + ' ' + ampm;
-                            
-                            $('#time').append('<option value="' + time + '">' + displayTime + '</option>');
+                            $('#appointment_time').append(
+                                `<option value="${slot.value}" 
+                                 ${slot.available <= 0 ? 'disabled' : ''}>
+                                    ${slot.time} (${status})
+                                </option>`
+                            );
                         });
                     } else {
-                        $('#time').append('<option value="" disabled>No available times</option>');
+                        $('#appointment_time').append('<option value="" disabled>No schedule available for this day</option>');
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Error fetching doctor schedule:', error);
-                    console.error('Status:', status);
-                    console.error('Response:', xhr.responseText);
-                    $('#time').empty();
-                    $('#time').append('<option value="">Error loading times</option>');
+                    console.error('Error fetching schedule:', error);
+                    $('#appointment_time').empty();
+                    $('#appointment_time').append('<option value="">Error loading schedule</option>');
                 }
             });
         } else {
-            $('#time').empty();
-            $('#time').append('<option value="">Select Doctor and Day first</option>');
+            $('#appointment_time').empty();
+            $('#appointment_time').append('<option value="">Select Doctor and Date first</option>');
         }
     });
 });

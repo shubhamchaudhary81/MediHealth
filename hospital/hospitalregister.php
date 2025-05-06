@@ -155,10 +155,68 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       padding: 2rem;
     }
 
-    .header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+   /* Header */
+   header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1550px;
+    background: #fff;
+    padding: 2px 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+  }
+  
+  .item1 img {
+    max-width: 150px;
+  }
+  
+  .item2 nav ul {
+    list-style: none;
+    display: flex;
+    gap: 25px;
+  }
+  
+  .item2 nav ul li {
+    display: inline-block;
+  }
+  
+  .item2 nav ul li a {
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    transition: 0.3s;
+  }
+  
+  .item2 nav ul li a:hover {
+    color: rgb(74, 144, 226);
+  }
+  
+  .item3 {
+    display: flex;
+    gap: 15px;
+  }
+  
+  .btn-register {
+    background: rgb(74, 144, 226);
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.3s;
+  }
+  
+  .btn-register:hover {
+    background: #0056b3;
+  }
 
     .logo {
       font-size: 2.5rem;
@@ -169,6 +227,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
+      margin-top; 50px;
     }
 
     .logo span {
@@ -326,10 +385,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   </style>
 </head>
 <body>
+<div class="container1">
+        <header>
+            <!-- <div class="logo">
+                <img src="Medihealth_1-removebg-preview.png" alt="">
+            </div> -->
+            <div class="item1"> <img src="../assets/logo-fotor-20250118225918.png" width="200px"></div>
+
+            <div class="item2">
+                <nav>
+                    <ul>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#blog">Blog</a></li>
+                        <li><a href="#contact">Contact</a></li>
+                        <li><a href="#contact">Review</a></li>
+                        
+                    </ul>
+                </nav>
+            </div>
+
+            <div class="item3">
+                <a href="hospitaladminlogin.php" class="btn-register">Hospital Login</a>
+                <a href="../index.php" class="btn-register">Home Page</a>
+            </div>
+        </header>
+    </div>
   <div class="container">
     <div class="header">
       <div class="logo">
-        <span>MediHealth</span>
+        <!-- <span>MediHealth</span> -->
       </div>
     </div>
 

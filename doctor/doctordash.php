@@ -24,7 +24,10 @@ if ($hour >= 5 && $hour < 12) {
 
 // Get doctor information
 $doctor_id = $_SESSION['user_id'];
-$query = "SELECT * FROM doctor WHERE doctor_id = ?";
+$query = "SELECT d.*, h.name as hospital_name 
+          FROM doctor d 
+          LEFT JOIN hospital h ON d.hospitalid = h.id 
+          WHERE d.doctor_id = ?";
 $stmt = $conn->prepare($query);
 if ($stmt === false) {
     die("Error preparing statement: " . $conn->error);
@@ -38,10 +41,10 @@ $doctor = $result->fetch_assoc();
 $today = date('Y-m-d');
 
 // Get today's appointments
-$appointments_query = "SELECT a.*, p.first_name, p.last_name, p.number as phone 
+$appointments_query = "SELECT a.*, p.first_name, p.last_name, p.number as phone, p.patientID
                       FROM appointments a 
                       LEFT JOIN patients p ON a.patient_id = p.patientID 
-                      WHERE a.doctor_id = ? AND a.appointment_date = ? 
+                      WHERE a.doctor_id = ? AND a.appointment_date = ? AND a.status != 'completed'
                       ORDER BY a.appointment_time";
 $stmt = $conn->prepare($appointments_query);
 if ($stmt === false) {
@@ -92,20 +95,6 @@ $stmt->bind_param("s", $doctor_id);
 $stmt->execute();
 $patient_result = $stmt->get_result();
 $patient_stats = $patient_result->fetch_assoc();
-
-// // Get prescription statistics
-// // --- CORRECTING THIS PART ---
-// $prescription_query = "SELECT COUNT(*) as total_prescriptions 
-//                        FROM prescriptions 
-//                        WHERE doctor_id = ? AND DATE(date_created) = ?";
-// $stmt = $conn->prepare($prescription_query);
-// if ($stmt === false) {
-//     die("Error preparing prescription query: " . $conn->error . " Query: " . $prescription_query);
-// }
-// $stmt->bind_param("ss", $doctor_id, $today);
-// $stmt->execute();
-// $prescription_result = $stmt->get_result();
-// $prescription_stats = $prescription_result->fetch_assoc();
 ?>
 
 <!DOCTYPE html>
@@ -114,427 +103,798 @@ $patient_stats = $patient_result->fetch_assoc();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediHealth</title>
-  <link rel="stylesheet" href="../css/doctordash.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-  <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Include TCPDF for PDF generation -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #4cc9f0;
+            --warning-color: #f72585;
+            --info-color: #4895ef;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --gray-color: #6c757d;
+            --border-color: #dee2e6;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fb;
+            color: var(--dark-color);
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            position: fixed;
+            height: 100vh;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .logo i {
+            font-size: 1.5rem;
+        }
+
+        .sidebar-nav {
+            padding: 1.5rem 0;
+        }
+
+        .nav-item {
+            list-style: none;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--gray-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: var(--light-color);
+            color: var(--primary-color);
+        }
+
+        .nav-link i {
+            font-size: 1.25rem;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+        }
+
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .welcome-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .profile-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .profile-image:hover .profile-overlay {
+            opacity: 1;
+        }
+
+        .profile-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+        }
+
+        .profile-overlay i {
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .welcome-text h1 {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .welcome-text p {
+            color: var(--gray-color);
+            font-size: 0.875rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-icon.blue { background: var(--primary-color); }
+        .stat-icon.teal { background: var(--success-color); }
+        .stat-icon.purple { background: var(--warning-color); }
+
+        .stat-info h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-info p {
+            color: var(--gray-color);
+            font-size: 0.875rem;
+        }
+
+        /* Appointments Section */
+        .appointments-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.25rem;
+            color: var(--dark-color);
+        }
+
+        .appointment-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .appointment-card {
+            background: var(--light-color);
+            padding: 1rem;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .appointment-time {
+            text-align: center;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 6px;
+            min-width: 100px;
+        }
+
+        .appointment-time .time {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .appointment-details h4 {
+            margin-bottom: 0.25rem;
+        }
+
+        .appointment-details p {
+            color: var(--gray-color);
+            font-size: 0.875rem;
+        }
+
+        .appointment-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--light-color);
+            color: var(--dark-color);
+        }
+
+        .btn-danger {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+        }
+
+        .close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-color);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 80px;
+            }
+
+            .sidebar .logo span,
+            .sidebar .nav-link span {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 80px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .appointment-card {
+                grid-template-columns: 1fr;
+            }
+
+            .appointment-actions {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
 </head>
-<body class="dashboard-body">
-  <!-- Dashboard Layout -->
+<body>
   <div class="dashboard-container">
     <!-- Sidebar -->
-    <aside class="dashboard-sidebar">
+        <aside class="sidebar">
       <div class="sidebar-header">
-        <!-- <a href="index.html" class="logo">
-          <div class="logo-icon">
-            <i class="fa-solid fa-file-medical"></i>
-          </div>
+                <a href="#" class="logo">
+                    <i class="fas fa-heartbeat"></i>
           <span>MediHealth</span>
-        </a> -->
-        <button id="toggleSidebar" class="toggle-sidebar">
-          <i class="fa-solid fa-bars"></i>
-        </button>
+                </a>
       </div>
       
       <nav class="sidebar-nav">
         <ul>
-          <li class="nav-item active">
-            <a href="#dashboard">
-              <i class="fa-solid fa-gauge-high"></i>
+                    <li class="nav-item">
+                        <a href="doctordash.php" class="nav-link active">
+                            <i class="fas fa-home"></i>
               <span>Dashboard</span>
             </a>
           </li>
           <li class="nav-item">
-            <a href="#appointments">
-              <i class="fa-solid fa-calendar-check"></i>
+                        <a href="appointments.php" class="nav-link">
+                            <i class="fas fa-calendar-check"></i>
               <span>Appointments</span>
             </a>
           </li>
           <li class="nav-item">
-            <a href="#patients">
-              <i class="fa-solid fa-users"></i>
+                        <a href="patients.php" class="nav-link">
+                            <i class="fas fa-users"></i>
               <span>Patients</span>
             </a>
           </li>
           <li class="nav-item">
-            <a href="#medical-records">
-              <i class="fa-solid fa-file-medical"></i>
+                        <a href="prescriptions.php" class="nav-link">
+                            <i class="fas fa-prescription"></i>
+                            <span>Prescriptions</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-file-medical"></i>
               <span>Medical Records</span>
             </a>
           </li>
           <li class="nav-item">
-            <a href="#prescriptions">
-              <i class="fa-solid fa-prescription"></i>
-              <span>Prescriptions</span>
+                        <a href="#" class="nav-link">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
             </a>
           </li>
         </ul>
       </nav>
-      
-      <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar">
-            <!-- <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Dr. John Doe"> -->
-          </div>
-          <div class="user-details">
-            <h4>Dr. <?php echo htmlspecialchars($doctor['name']); ?></h4>
-            <p><?php echo htmlspecialchars($doctor['specialization']); ?></p>
-          </div>
-        </div>
-        <a href="../patient/logout.php" class="logout-btn">
-          <i class="fa-solid fa-sign-out-alt"></i>
-          <span>Logout</span>
-        </a>
-      </div>
     </aside>
     
     <!-- Main Content -->
-    <main class="dashboard-main">
-      <!-- Top Navigation -->
-      <header class="dashboard-header">
-        
-        
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="welcome-section">
+                    <div class="profile-image">
+                        <?php echo strtoupper(substr($doctor['name'], 0, 1)); ?>
+                        <div class="profile-overlay" onclick="showProfileModal()">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                    </div>
+                    <div class="welcome-text">
+                        <h1><?php echo $greeting; ?>, Dr. <?php echo htmlspecialchars($doctor['name']); ?></h1>
+                        <p><?php echo htmlspecialchars($doctor['hospital_name']); ?></p>
+                    </div>
+                </div>
         <div class="header-actions">
-          <button class="notification-btn">
-            <i class="fa-solid fa-bell"></i>
-            <span class="notification-dot"></span>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
           </button>
         </div>
       </header>
     
-      <!-- Dashboard Content -->
-      <div class="dashboard-content">
-        <div class="dashboard-welcome">
-          <h1>Good <?php echo (date('H') < 12) ? 'Morning' : ((date('H') < 18) ? 'Afternoon' : 'Evening'); ?>, Dr. <?php echo htmlspecialchars($doctor['name']); ?></h1>
-          <p>Here's your activity summary for today - <?php echo date('l, d F, Y'); ?></p>
-        </div>
-        
-        <!-- Stats Cards -->
-        <div class="stats-row">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
           <div class="stat-card">
+                    <div class="stat-header">
             <div class="stat-icon blue">
-              <i class="fa-solid fa-calendar-check"></i>
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Today's Appointments</h3>
+                            <p><?php echo $appointments->num_rows; ?> Total</p>
             </div>
-            <div class="stat-details">
-              <h3>Appointments</h3>
-              <p class="stat-value"><?php echo $appointments->num_rows; ?> Today</p>
             </div>
             <div class="stat-progress">
-              <p><?php echo $stats['completed_appointments']; ?> Completed</p>
               <div class="progress-bar">
                 <div class="progress-fill" style="width: <?php echo ($appointments->num_rows > 0) ? ($stats['completed_appointments'] / $appointments->num_rows * 100) : 0; ?>%"></div>
               </div>
+                        <p><?php echo $stats['completed_appointments']; ?> Completed</p>
             </div>
           </div>
           
           <div class="stat-card">
+                    <div class="stat-header">
             <div class="stat-icon teal">
-              <i class="fa-solid fa-users"></i>
+                            <i class="fas fa-users"></i>
             </div>
-            <div class="stat-details">
-              <h3>Patients</h3>
-              <p class="stat-value"><?php echo $patient_stats['total_patients']; ?> Active</p>
-            </div>
-            <div class="stat-progress">
-              <p>+<?php echo rand(1, 5); ?> New This Week</p>
-              <div class="progress-bar">
-                <div class="progress-fill teal" style="width: 75%"></div>
+                        <div class="stat-info">
+                            <h3>Total Patients</h3>
+                            <p><?php echo $patient_stats['total_patients']; ?> Active</p>
               </div>
             </div>
           </div>
           
           <div class="stat-card">
+                    <div class="stat-header">
             <div class="stat-icon purple">
-              <i class="fa-solid fa-prescription"></i>
+                            <i class="fas fa-prescription"></i>
             </div>
-            <!-- <div class="stat-details">
+                        <div class="stat-info">
               <h3>Prescriptions</h3>
-              <p class="stat-value"><?php echo $prescription_stats['total_prescriptions']; ?> Today</p>
-            </div> -->
-            <div class="stat-progress">
-              <p>5 Completed Today</p>
-              <div class="progress-bar">
-                <div class="progress-fill purple" style="width: 42%"></div>
-              </div>
+                            <p>Manage patient prescriptions</p>
             </div>
           </div>
           </div>
         </div>
         
-        <!-- Appointment Schedule -->
-        <div class="content-row">
-          <div class="content-card appointments-card">
-            <div class="card-header">
+            <!-- Today's Appointments -->
+            <section class="appointments-section">
+                <div class="section-header">
               <h2>Today's Schedule</h2>
-              <div class="card-actions">
-                <button class="view-all-btn">View All</button>
-              </div>
+                    <!-- <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        <span>New Appointment</span>
+                    </button> -->
             </div>
             
-            <div class="appointments-timeline">
+                <div class="appointment-list">
               <?php if ($appointments->num_rows > 0): ?>
                 <?php while ($appointment = $appointments->fetch_assoc()): ?>
-                  <div class="appointment-item <?php echo ($appointment['status'] == 'in-progress') ? 'current' : 'upcoming'; ?>">
+                            <div class="appointment-card">
                     <div class="appointment-time">
                       <p class="time"><?php echo date('h:i A', strtotime($appointment['appointment_time'])); ?></p>
-                      <div class="time-indicator"></div>
                     </div>
                     <div class="appointment-details">
-                      <div class="patient-avatar">
-                        <i class="fa-solid fa-user"></i>
-                      </div>
-                      <div class="appointment-info">
                         <h4><?php echo htmlspecialchars($appointment['first_name'] . ' ' . $appointment['last_name']); ?></h4>
                         <p><?php echo htmlspecialchars($appointment['reason']); ?></p>
-                        <div class="appointment-actions">
-                          <a href="prestemplate.php"><button class="appointment-btn view" >
-                            <i class="fa-solid fa-eye"></i> View
-                          </button></a>
-                          <button class="appointment-btn reschedule" onclick="rescheduleAppointment(<?php echo $appointment['appointment_id']; ?>)">
-                            <i class="fa-solid fa-calendar"></i> Reschedule
-                          </button>
-                          <button class="appointment-btn cancel" onclick="cancelAppointment(<?php echo $appointment['appointment_id']; ?>)">
-                            <i class="fa-solid fa-times"></i> Cancel
-                          </button>
-                          <?php if ($appointment['status'] == 'confirmed'): ?>
-                            <button class="appointment-btn start" onclick="startConsultation(<?php echo $appointment['appointment_id']; ?>)">
-                              <i class="fa-solid fa-video"></i> Start Consultation
-                            </button>
-                          <?php endif; ?>
+                                    <div class="patient-info">
+                                        <small>Phone: <?php echo htmlspecialchars($appointment['phone']); ?></small>
                         </div>
                       </div>
+                                <div class="appointment-actions">
+                                    <button class="btn btn-primary" onclick="viewPatientDetails(<?php echo $appointment['patientID']; ?>)">
+                                        <i class="fas fa-user"></i>
+                                        <span>View Details</span>
+                                    </button>
+                                    <a href="prestemplate.php?id=<?php echo $appointment['appointment_id']; ?>" class="btn btn-secondary">
+                                        <i class="fas fa-prescription"></i>
+                                        <span>Prescription</span>
+                                    </a>
+                                    <button class="btn btn-danger" onclick="cancelAppointment(<?php echo $appointment['appointment_id']; ?>)">
+                                        <i class="fas fa-times"></i>
+                                        <span>Cancel</span>
+                                    </button>
                     </div>
                   </div>
                 <?php endwhile; ?>
               <?php else: ?>
                 <div class="empty-state">
-                  <i class="fa-solid fa-calendar-times"></i>
                   <p>No appointments scheduled for today</p>
                 </div>
               <?php endif; ?>
             </div>
-          </div>
-        </div>
-      </div>
+            </section>
     </main>
   </div>
 
-  <!-- Prescription Modal -->
-  <div id="prescriptionModal" class="modal">
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Create Prescription</h2>
-        <span class="close">&times;</span>
+                <h2>Update Profile</h2>
+                <button class="close" onclick="closeProfileModal()">&times;</button>
+            </div>
+            <form id="profileForm" method="POST" action="update_profile.php" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="profileImage">Profile Image</label>
+                    <input type="file" id="profileImage" name="profileImage" class="form-control" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" class="form-control" value="<?php echo htmlspecialchars($doctor['name']); ?>" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($doctor['email']); ?>" required>
       </div>
-      <div class="modal-body">
-        <form id="prescriptionForm">
-          <input type="hidden" id="appointment_id" name="appointment_id">
-          <input type="hidden" id="patient_id" name="patient_id">
-          
           <div class="form-group">
-            <label for="patient_name">Patient Name</label>
-            <input type="text" id="patient_name" name="patient_name" readonly>
+                    <label for="phone">Phone</label>
+                    <input type="tel" id="phone" name="phone" class="form-control" value="<?php echo htmlspecialchars($doctor['phone']); ?>" required>
           </div>
-          
           <div class="form-group">
-            <label for="diagnosis">Diagnosis</label>
-            <textarea id="diagnosis" name="diagnosis" rows="3" required></textarea>
+                    <label for="specialization">Specialization</label>
+                    <input type="text" id="specialization" name="specialization" class="form-control" value="<?php echo htmlspecialchars($doctor['specialization']); ?>" required>
           </div>
-          
           <div class="form-group">
-            <label for="prescription">Prescription</label>
-            <textarea id="prescription" name="prescription" rows="5" required></textarea>
+                    <label for="current_password">Current Password</label>
+                    <input type="password" id="current_password" name="current_password" class="form-control">
           </div>
-          
           <div class="form-group">
-            <label for="notes">Additional Notes</label>
-            <textarea id="notes" name="notes" rows="2"></textarea>
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" class="form-control">
           </div>
-          
-          <div class="form-actions">
-            <button type="button" id="savePrescription" class="btn-primary">Save Prescription</button>
-            <button type="button" id="downloadPrescription" class="btn-secondary">Download as PDF</button>
+                <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control">
           </div>
+                <button type="submit" class="btn btn-primary">Update Profile</button>
         </form>
       </div>
     </div>
-  </div>
 
-  <!-- Toast Notification -->
-  <div id="toast" class="toast">
-    <div class="toast-content">
-      <i class="fa-solid fa-circle-check"></i>
-      <div class="toast-message"></div>
-    </div>
-    <div class="toast-progress"></div>
+    <!-- Patient Details Modal -->
+    <div id="patientModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Patient Details</h2>
+                <button class="close" onclick="closePatientModal()">&times;</button>
   </div>
+            <div id="patientDetails">
+                <!-- Patient details will be loaded here -->
+    </div>
+  </div>
+    </div>
+
 
   <script>
-    // Toggle sidebar
-    document.getElementById('toggleSidebar').addEventListener('click', function() {
-      document.querySelector('.dashboard-sidebar').classList.toggle('collapsed');
-      document.querySelector('.dashboard-main').classList.toggle('expanded');
-    });
+        // Profile Modal Functions
+        function showProfileModal() {
+            document.getElementById('profileModal').style.display = 'flex';
+        }
 
-    // Modal functionality
-    const modal = document.getElementById('prescriptionModal');
-    const closeBtn = document.querySelector('.close');
-    
-    closeBtn.onclick = function() {
-      modal.style.display = "none";
-    }
-    
-    window.onclick = function(event) {
-      if (event.target == modal) {
-        modal.style.display = "none";
-      }
-    }
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+        }
 
-    // View appointment and open prescription modal
-    function viewAppointment(appointmentId) {
-      // Fetch appointment details via AJAX
-      fetch(`get_appointment.php?id=${appointmentId}`)
+        // Patient Modal Functions
+        function viewPatientDetails(patientId) {
+            fetch(`get_patient_details.php?id=${patientId}`)
         .then(response => response.json())
         .then(data => {
-          document.getElementById('appointment_id').value = data.appointment_id;
-          document.getElementById('patient_id').value = data.patient_id;
-          document.getElementById('patient_name').value = data.patient_name;
-          
-          // Show the modal
-          modal.style.display = "block";
+                    document.getElementById('patientDetails').innerHTML = `
+                        <div class="patient-info">
+                            <h3>${data.first_name} ${data.last_name}</h3>
+                            <p><strong>Phone:</strong> ${data.number}</p>
+                            <p><strong>Email:</strong> ${data.email}</p>
+                            <p><strong>Medical History:</strong> ${data.medical_history || 'None'}</p>
+                            <p><strong>Allergies:</strong> ${data.allergies || 'None'}</p>
+                            <p><strong>Current Medications:</strong> ${data.current_medications || 'None'}</p>
+                        </div>
+                    `;
+                    document.getElementById('patientModal').style.display = 'flex';
         })
         .catch(error => {
-          showToast('Error fetching appointment details', 'error');
-        });
-    }
+                    console.error('Error:', error);
+                    alert('Error loading patient details');
+                });
+        }
 
-    // Save prescription
-    document.getElementById('savePrescription').addEventListener('click', function() {
-      const formData = new FormData(document.getElementById('prescriptionForm'));
-      
-      fetch('save_prescription.php', {
+        function closePatientModal() {
+            document.getElementById('patientModal').style.display = 'none';
+        }
+
+        // Prescription Modal Functions
+        function viewPrescription(appointmentId) {
+            document.getElementById('appointment_id').value = appointmentId;
+            document.getElementById('prescriptionModal').style.display = 'flex';
+        }
+
+        function closePrescriptionModal() {
+            document.getElementById('prescriptionModal').style.display = 'none';
+            document.getElementById('prescriptionForm').reset();
+        }
+
+        // Handle prescription form submission
+        document.getElementById('prescriptionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                appointment_id: document.getElementById('appointment_id').value,
+                diagnosis: document.getElementById('diagnosis').value,
+                prescription: document.getElementById('prescription').value,
+                notes: document.getElementById('notes').value
+            };
+
+            fetch('prescription.php', {
         method: 'POST',
-        body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
       })
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          showToast('Prescription saved successfully', 'success');
-          modal.style.display = "none";
+                    // Create a new window for printing
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(data.prescription_html);
+                    printWindow.document.close();
+                    
+                    // Wait for content to load then print
+                    printWindow.onload = function() {
+                        printWindow.print();
+                        printWindow.close();
+                    };
+                    
+                    closePrescriptionModal();
+                    location.reload(); // Refresh to show updated appointment status
         } else {
-          showToast(data.message || 'Error saving prescription', 'error');
+                    alert(data.error || 'Error saving prescription');
         }
       })
       .catch(error => {
-        showToast('Error saving prescription', 'error');
+                console.error('Error:', error);
+                alert('Error saving prescription');
       });
     });
 
-    // Download prescription as PDF
-    document.getElementById('downloadPrescription').addEventListener('click', function() {
-      const appointmentId = document.getElementById('appointment_id').value;
-      const patientName = document.getElementById('patient_name').value;
-      const diagnosis = document.getElementById('diagnosis').value;
-      const prescription = document.getElementById('prescription').value;
-      const notes = document.getElementById('notes').value;
-      
-      // Create prescription HTML
-      const prescriptionHTML = `
-        <div id="prescription-pdf" style="padding: 20px; font-family: Arial, sans-serif;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #4361ee;">MediHealth</h1>
-            <h2>Medical Prescription</h2>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-            <p><strong>Patient Name:</strong> ${patientName}</p>
-            <p><strong>Doctor:</strong> Dr. <?php echo htmlspecialchars($doctor['name']); ?></p>
-            <p><strong>Specialization:</strong> <?php echo htmlspecialchars($doctor['specialization']); ?></p>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <h3>Diagnosis:</h3>
-            <p>${diagnosis}</p>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <h3>Prescription:</h3>
-            <p>${prescription}</p>
-          </div>
-          
-          <div style="margin-bottom: 20px;">
-            <h3>Additional Notes:</h3>
-            <p>${notes}</p>
-          </div>
-          
-          <div style="margin-top: 40px; border-top: 1px solid #ccc; padding-top: 10px;">
-            <p><strong>Doctor's Signature:</strong> _______________________</p>
-          </div>
-        </div>
-      `;
-      
-      // Create a temporary div to hold the prescription
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = prescriptionHTML;
-      document.body.appendChild(tempDiv);
-      
-      // Generate PDF
-      const element = document.getElementById('prescription-pdf');
-      const opt = {
-        margin: 1,
-        filename: `prescription_${patientName.replace(/\s+/g, '_')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-      
-      html2pdf().set(opt).from(element).save().then(() => {
-        document.body.removeChild(tempDiv);
-      });
-    });
+        // Add prescription template button
+        document.getElementById('prescription').addEventListener('focus', function() {
+            const templateButton = document.createElement('button');
+            templateButton.type = 'button';
+            templateButton.className = 'btn btn-secondary';
+            templateButton.innerHTML = '<i class="fas fa-file-medical"></i> Use Template';
+            templateButton.style.marginTop = '10px';
+            
+            templateButton.onclick = function() {
+                const template = `1. [Medication Name] [Dosage]
+   - Take [X] tablet(s) [X] times daily
+   - [Before/After] meals
+   - Duration: [X] days
 
-    // Toast notification
-    function showToast(message, type = 'success') {
-      const toast = document.getElementById('toast');
-      const toastMessage = document.querySelector('.toast-message');
-      const toastIcon = document.querySelector('.toast-content i');
-      
-      toastMessage.textContent = message;
-      
-      if (type === 'error') {
-        toastIcon.className = 'fa-solid fa-circle-exclamation';
-        toast.classList.add('error');
-      } else {
-        toastIcon.className = 'fa-solid fa-circle-check';
-        toast.classList.remove('error');
-      }
-      
-      toast.classList.add('show');
-      
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 3000);
-    }
+2. [Medication Name] [Dosage]
+   - Take [X] tablet(s) [X] times daily
+   - [Before/After] meals
+   - Duration: [X] days
 
-    // Other appointment actions
-    function rescheduleAppointment(appointmentId) {
-      // Implement rescheduling functionality
-      showToast('Rescheduling functionality will be implemented soon', 'info');
-    }
-    
+3. [Medication Name] [Dosage]
+   - Take [X] tablet(s) [X] times daily
+   - [Before/After] meals
+   - Duration: [X] days`;
+                
+                document.getElementById('prescription').value = template;
+            };
+            
+            if (!this.nextElementSibling || !this.nextElementSibling.classList.contains('btn')) {
+                this.parentNode.insertBefore(templateButton, this.nextSibling);
+            }
+        });
+
+        // Appointment Functions
     function cancelAppointment(appointmentId) {
       if (confirm('Are you sure you want to cancel this appointment?')) {
-        // Implement cancellation functionality
-        showToast('Appointment cancelled successfully', 'success');
-      }
-    }
-    
-    function startConsultation(appointmentId) {
-      // Implement consultation start functionality
-      showToast('Starting consultation...', 'info');
+                fetch('cancel_appointment.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ appointment_id: appointmentId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error canceling appointment');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error canceling appointment');
+                });
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
     }
   </script>
 </body>

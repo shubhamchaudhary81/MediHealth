@@ -57,14 +57,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $specialization = $_POST['specialization'];
     $qualification = $_POST['qualification'];
     $experience = $_POST['experience'];
+    $is_specialist = isset($_POST['is_specialist']) ? 1 : 0;
     
     // Process schedule data
     $schedule_data = json_decode($_POST['schedule'], true);
     $formatted_schedule = [];
     
-    foreach ($schedule_data as $day => $times) {
-        if (!empty($times)) {
-            $formatted_schedule[] = $day . ': ' . implode(', ', $times);
+    foreach ($schedule_data as $day => $slots) {
+        if (!empty($slots)) {
+            $day_slots = [];
+            foreach ($slots as $slot) {
+                $day_slots[] = $slot['from'] . ' - ' . $slot['to'] . ' (Max Patients: ' . $slot['capacity'] . ')';
+            }
+            $formatted_schedule[] = $day . ': ' . implode(', ', $day_slots);
         }
     }
     
@@ -98,34 +103,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     try {
         // Insert doctor into database
-        $insert_query = "INSERT INTO doctor (doctor_id, hospitalid, department_id, name, email, phone, specialization, qualification, experience, password, schedule) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $insert_query = "INSERT INTO doctor (doctor_id, hospitalid, department_id, name, email, phone, specialization, qualification, experience, password, schedule, is_specialist) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $conn->prepare($insert_query);
-        $stmt->bind_param("siisssssiss", $doctor_id, $hospital_id, $department_id, $name, $email, $phone, $specialization, $qualification, $experience, $hashed_password, $schedule);
+        $stmt->bind_param("siisssssissi", $doctor_id, $hospital_id, $department_id, $name, $email, $phone, $specialization, $qualification, $experience, $hashed_password, $schedule, $is_specialist);
 
         if ($stmt->execute()) {
             // Insert schedule into doctor_schedule table
-            foreach ($schedule_data as $day => $times) {
-                if (!empty($times)) {
-                    // Format times to HH:MM:SS
-                    $formatted_times = array();
-                    foreach ($times as $time) {
-                        if (preg_match('/^(\d{1,2}):(\d{2})$/', $time, $time_matches)) {
-                            $hours = $time_matches[1];
-                            $minutes = $time_matches[2];
-                            $formatted_times[] = sprintf("%02d:%02d:00", $hours, $minutes);
-                        } else {
-                            $formatted_times[] = $time;
-                        }
+            foreach ($schedule_data as $day => $slots) {
+                if (!empty($slots)) {
+                    foreach ($slots as $slot) {
+                        $schedule_insert_query = "INSERT INTO doctor_schedule (doctor_id, day, from_time, to_time, max_patients) VALUES (?, ?, ?, ?, ?)";
+                        $schedule_stmt = $conn->prepare($schedule_insert_query);
+                        $schedule_stmt->bind_param("ssssi", $doctor_id, $day, $slot['from'], $slot['to'], $slot['capacity']);
+                        $schedule_stmt->execute();
                     }
-                    
-                    $time_slots = implode(',', $formatted_times);
-                    
-                    $schedule_insert_query = "INSERT INTO doctor_schedule (doctor_id, day, time_slots) VALUES (?, ?, ?)";
-                    $schedule_stmt = $conn->prepare($schedule_insert_query);
-                    $schedule_stmt->bind_param("sss", $doctor_id, $day, $time_slots);
-                    $schedule_stmt->execute();
                 }
             }
             
@@ -343,6 +336,65 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             color: #94a3b8;
             cursor: not-allowed;
         }
+
+        /* Add these new styles */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-label span {
+            font-size: 15px;
+            color: var(--text-color);
+        }
+
+        .time-slot-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .time-slot-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .time-input {
+            width: 120px;
+        }
+
+        .capacity-input {
+            width: 100px;
+        }
+
+        .remove-slot {
+            padding: 8px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .add-slot {
+            padding: 8px 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -408,27 +460,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
 
                 <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="is_specialist" name="is_specialist">
+                        <span>Is Specialist</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
                     <label>Schedule</label>
                     <div class="schedule-grid">
                         <?php
                         $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                        $time_slots = [
-                            '09:00:00' => '09:00 AM',
-                            '09:30:00' => '09:30 AM',
-                            '10:00:00' => '10:00 AM',
-                            '10:30:00' => '10:30 AM',
-                            '11:00:00' => '11:00 AM',
-                            '11:30:00' => '11:30 AM',
-                            '12:00:00' => '12:00 PM',
-                            '12:30:00' => '12:30 PM',
-                            '14:00:00' => '02:00 PM',
-                            '14:30:00' => '02:30 PM',
-                            '15:00:00' => '03:00 PM',
-                            '15:30:00' => '03:30 PM',
-                            '16:00:00' => '04:00 PM',
-                            '16:30:00' => '04:30 PM',
-                            '17:00:00' => '05:00 PM'
-                        ];
                         ?>
                         <div class="schedule-header">
                             <div class="day-header">Day</div>
@@ -439,21 +481,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 <div class="day-label">
                                     <input type="checkbox" id="day_<?php echo $day; ?>" name="schedule[<?php echo $day; ?>][enabled]" class="day-checkbox">
                                     <label for="day_<?php echo $day; ?>"><?php echo $day; ?></label>
-                        </div>
-                                <div class="time-slots">
-                                    <?php foreach ($time_slots as $value => $label): ?>
-                                        <div class="time-slot">
-                                            <input type="checkbox" 
-                                                   id="time_<?php echo $day; ?>_<?php echo $value; ?>" 
-                                                   name="schedule[<?php echo $day; ?>][times][]" 
-                                                   value="<?php echo $value; ?>"
-                                                   class="time-checkbox"
-                                                   disabled>
-                                            <label for="time_<?php echo $day; ?>_<?php echo $value; ?>"><?php echo $label; ?></label>
-                        </div>
-                                    <?php endforeach; ?>
-                        </div>
-                    </div>
+                                </div>
+                                <div class="time-slots" id="time-slots-<?php echo $day; ?>">
+                                    <div class="time-slot-inputs">
+                                        <div class="time-slot-row">
+                                            <input type="time" class="form-control time-input" disabled>
+                                            <span>to</span>
+                                            <input type="time" class="form-control time-input" disabled>
+                                            <input type="number" class="form-control capacity-input" placeholder="Max Patients" min="1" disabled>
+                                            <button type="button" class="btn btn-danger remove-slot" disabled>
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary add-slot" disabled>
+                                        <i class="fas fa-plus"></i> Add Time Slot
+                                    </button>
+                                </div>
+                            </div>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -469,45 +514,101 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         document.querySelector('.sidebar').classList.toggle('active');
     });
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Handle day checkbox changes
-            document.querySelectorAll('.day-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const day = this.id.split('_')[1];
-                    const timeCheckboxes = document.querySelectorAll(`input[name="schedule[${day}][times][]"]`);
-                    timeCheckboxes.forEach(timeCheckbox => {
-                        timeCheckbox.disabled = !this.checked;
-                    });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle day checkbox changes
+        document.querySelectorAll('.day-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const day = this.id.split('_')[1];
+                const timeSlotsContainer = document.getElementById(`time-slots-${day}`);
+                const inputs = timeSlotsContainer.querySelectorAll('input, button');
+                inputs.forEach(input => {
+                    input.disabled = !this.checked;
                 });
-    });
+            });
+        });
 
-            // Handle form submission
-            document.querySelector('form').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Collect schedule data
-                const schedule = {};
-                document.querySelectorAll('.day-checkbox').forEach(dayCheckbox => {
-                    const day = dayCheckbox.id.split('_')[1];
-                    if (dayCheckbox.checked) {
-                        const selectedTimes = Array.from(document.querySelectorAll(`input[name="schedule[${day}][times][]"]:checked`))
-                            .map(checkbox => checkbox.value);
-                        if (selectedTimes.length > 0) {
-                            schedule[day] = selectedTimes;
-                        }
-                    }
+        // Add time slot
+        document.querySelectorAll('.add-slot').forEach(button => {
+            button.addEventListener('click', function() {
+                const day = this.closest('.schedule-row').querySelector('.day-checkbox').id.split('_')[1];
+                const timeSlotsContainer = this.previousElementSibling;
+                const newSlot = document.createElement('div');
+                newSlot.className = 'time-slot-row';
+                newSlot.innerHTML = `
+                    <input type="time" class="form-control time-input" name="schedule[${day}][slots][][from]" required>
+                    <span>to</span>
+                    <input type="time" class="form-control time-input" name="schedule[${day}][slots][][to]" required>
+                    <input type="number" class="form-control capacity-input" name="schedule[${day}][slots][][capacity]" placeholder="Max Patients" min="1" required>
+                    <button type="button" class="btn btn-danger remove-slot">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                timeSlotsContainer.appendChild(newSlot);
+
+                // Add remove functionality
+                newSlot.querySelector('.remove-slot').addEventListener('click', function() {
+                    newSlot.remove();
                 });
-                
-                // Create hidden input for schedule
-                const scheduleInput = document.createElement('input');
+            });
+        });
+
+        // Handle form submission
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate form
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Collect schedule data
+            const schedule = {};
+            document.querySelectorAll('.day-checkbox').forEach(dayCheckbox => {
+                const day = dayCheckbox.id.split('_')[1];
+                if (dayCheckbox.checked) {
+                    const slots = [];
+                    const timeSlots = dayCheckbox.closest('.schedule-row').querySelectorAll('.time-slot-row');
+                    timeSlots.forEach(slot => {
+                        const fromTime = slot.querySelector('input[type="time"]:first-child').value;
+                        const toTime = slot.querySelector('input[type="time"]:nth-child(3)').value;
+                        const capacity = slot.querySelector('input[type="number"]').value;
+                        
+                        if (fromTime && toTime && capacity) {
+                            slots.push({
+                                from: fromTime,
+                                to: toTime,
+                                capacity: parseInt(capacity)
+                            });
+                        }
+                    });
+                    
+                    if (slots.length > 0) {
+                        schedule[day] = slots;
+                    }
+                }
+            });
+            
+            // Validate if at least one day has slots
+            if (Object.keys(schedule).length === 0) {
+                alert('Please add at least one time slot for any day');
+                return;
+            }
+            
+            // Create hidden input for schedule
+            let scheduleInput = document.querySelector('input[name="schedule"]');
+            if (!scheduleInput) {
+                scheduleInput = document.createElement('input');
                 scheduleInput.type = 'hidden';
                 scheduleInput.name = 'schedule';
-                scheduleInput.value = JSON.stringify(schedule);
-                this.appendChild(scheduleInput);
-                
-                // Submit the form
-                this.submit();
-            });
+                form.appendChild(scheduleInput);
+            }
+            scheduleInput.value = JSON.stringify(schedule);
+            
+            // Submit the form
+            form.submit();
+        });
     });
 </script>
 </body>

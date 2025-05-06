@@ -247,5 +247,46 @@ if ($conn->query($create_superadmin_table) === TRUE) {
     // Error creating superadmin table
 }
 
+// Create 'prescriptions' table
+$prescriptionsTableSql = "CREATE TABLE IF NOT EXISTS prescriptions (
+    prescription_id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    appointment_id INT(11) NOT NULL,
+    doctor_id VARCHAR(20) NOT NULL,
+    patient_id INT(11) NOT NULL,
+    hospital_id INT(11) NOT NULL,
+    diagnosis TEXT NOT NULL,
+    medications TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctor(doctor_id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES patients(patientID) ON DELETE CASCADE,
+    FOREIGN KEY (hospital_id) REFERENCES hospital(id) ON DELETE CASCADE
+)";
+
+if ($conn->query($prescriptionsTableSql) === TRUE) {
+    // echo "Table 'prescriptions' created successfully<br>";
+} else {
+    // echo "Error creating 'prescriptions' table: " . $conn->error . "<br>";
+}
+
+// Create booked_slots table
+$sql = "CREATE TABLE IF NOT EXISTS booked_slots (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id VARCHAR(20) NOT NULL,
+    appointment_date DATE NOT NULL,
+    time_slot VARCHAR(20) NOT NULL,
+    booked_count INT DEFAULT 0,
+    max_patients INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doctor_id) REFERENCES doctor(doctor_id) ON DELETE CASCADE
+)";
+
+if ($conn->query($sql) === TRUE) {
+    // echo "Table booked_slots created successfully";
+} else {
+    echo "Error creating table: " . $conn->error;
+}
+
 // $conn->close();
 ?>

@@ -66,7 +66,7 @@ $doctors_result = $conn->query($doctors_query);
 
   <main>
     <!-- Greeting Section -->
-    <div class="greeting-container">
+    <div class="greeting-container container">
         <div class="greeting-content">
             <div class="greeting-icon">
                 <i class="fa-solid fa-heart-pulse"></i>
@@ -284,23 +284,26 @@ $doctors_result = $conn->query($doctors_query);
         <!-- about section starts -->
 
         <section class="about" id="about">
-      <div class="head">
-          <h1 class="heading"> <span>About</span> us </h1>
-      </div>
-    <div class="row">
+          <div class="container">
 
-        <div class="image">
-            <img src="../assets/Screenshot 2025-03-05 235427.png" alt="">
-        </div>
-
-        <div class="content">
-          <h3>Your health, our priority – committed to excellence in care.</h3>
-         
-          <p>MediHealth – Your trusted partner in healthcare. We provide expert medical services, reliable health information, and personalized care to support your well-being. With a commitment to excellence and compassion, MediHealth connects you to quality healthcare solutions for a healthier life.</p>
-          <a href="#" class="btn"> learn more <span class="fas fa-chevron-right"></span> </a>
-      </div>
-
-    </div>
+            <div class="head">
+                <h1 class="heading"> <span>About</span> us </h1>
+            </div>
+            <div class="row" style="display:flex;">
+        
+                <div class="image">
+                    <img src="../assets/Screenshot 2025-03-05 235427.png" alt="">
+                </div>
+        
+                <div class="content">
+                  <h3>Your health, our priority – committed to excellence in care.</h3>
+                
+                  <p>MediHealth – Your trusted partner in healthcare. We provide expert medical services, reliable health information, and personalized care to support your well-being. With a commitment to excellence and compassion, MediHealth connects you to quality healthcare solutions for a healthier life.</p>
+                  <a href="#" class="btn"> learn more <span class="fas fa-chevron-right"></span> </a>
+              </div>
+        
+            </div>
+          </div>
 
 </section>
 
@@ -322,9 +325,12 @@ $doctors_result = $conn->query($doctors_query);
     justify-content: space-between;
     align-items: center;
     padding: 2rem 3rem;
+    /* margin-top:2rem; */
     background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-    margin: 2.75rem;
+    /* margin: 2.75rem; */
+    margin-top: 8rem;
+    margin-bottom: 3rem;
     border-radius: 16px;
     position: relative;
     overflow: hidden;
@@ -341,6 +347,7 @@ $doctors_result = $conn->query($doctors_query);
     height: 100%;
     background: linear-gradient(45deg, rgba(52, 152, 219, 0.05) 0%, rgba(52, 152, 219, 0) 100%);
     z-index: 0;
+    margin-top:2 rem;
 }
 
 .greeting-container:hover {

@@ -19,19 +19,18 @@ $stmt->execute();
 $result = $stmt->get_result();
 $doctor = $result->fetch_assoc();
 
-// Get all prescriptions
-$prescriptions_query = "SELECT p.*, 
-                       pt.first_name, pt.last_name, pt.number as phone,
-                       a.appointment_date, a.appointment_time
-                       FROM prescriptions p 
-                       JOIN patients pt ON p.patient_id = pt.patientID
-                       JOIN appointments a ON p.appointment_id = a.appointment_id
-                       WHERE p.doctor_id = ?
-                       ORDER BY p.created_at DESC";
-$stmt = $conn->prepare($prescriptions_query);
-$stmt->bind_param("s", $doctor_id);
+// Get all patients who have appointments with this doctor
+$patients_query = "SELECT DISTINCT p.*, 
+                  (SELECT COUNT(*) FROM appointments a WHERE a.patient_id = p.patientID AND a.doctor_id = ?) as appointment_count,
+                  (SELECT MAX(appointment_date) FROM appointments a WHERE a.patient_id = p.patientID AND a.doctor_id = ?) as last_visit
+                  FROM patients p 
+                  INNER JOIN appointments a ON p.patientID = a.patient_id 
+                  WHERE a.doctor_id = ?
+                  ORDER BY last_visit DESC";
+$stmt = $conn->prepare($patients_query);
+$stmt->bind_param("sss", $doctor_id, $doctor_id, $doctor_id);
 $stmt->execute();
-$prescriptions = $stmt->get_result();
+$patients = $stmt->get_result();
 ?>
 
 <!DOCTYPE html>
@@ -39,7 +38,7 @@ $prescriptions = $stmt->get_result();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prescriptions - MediHealth</title>
+    <title>MediHealth</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -183,8 +182,8 @@ $prescriptions = $stmt->get_result();
             font-size: 0.875rem;
         }
 
-        /* Prescriptions Section */
-        .prescriptions-section {
+        /* Patients Section */
+        .patients-section {
             background: white;
             padding: 1.5rem;
             border-radius: 10px;
@@ -217,50 +216,60 @@ $prescriptions = $stmt->get_result();
             font-size: 1rem;
         }
 
-        .prescription-list {
+        .patient-list {
             display: grid;
             gap: 1rem;
         }
 
-        .prescription-card {
+        .patient-card {
             background: var(--light-color);
             padding: 1.5rem;
             border-radius: 8px;
             display: grid;
-            grid-template-columns: 1fr auto;
+            grid-template-columns: auto 1fr auto;
             gap: 1.5rem;
+            align-items: center;
         }
 
-        .prescription-info h4 {
+        .patient-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .patient-info h4 {
             font-size: 1.1rem;
             margin-bottom: 0.5rem;
         }
 
-        .prescription-info p {
+        .patient-info p {
             color: var(--gray-color);
             font-size: 0.875rem;
             margin-bottom: 0.25rem;
         }
 
-        .prescription-details {
-            margin-top: 1rem;
-            padding: 1rem;
+        .patient-stats {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .stat-item {
             background: white;
-            border-radius: 6px;
-        }
-
-        .prescription-details h5 {
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-
-        .prescription-details p {
-            white-space: pre-line;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
             font-size: 0.875rem;
-            line-height: 1.6;
+            color: var(--primary-color);
         }
 
-        .prescription-actions {
+        .patient-actions {
             display: flex;
             gap: 0.5rem;
         }
@@ -309,12 +318,21 @@ $prescriptions = $stmt->get_result();
         }
 
         @media (max-width: 768px) {
-            .prescription-card {
+            .patient-card {
                 grid-template-columns: 1fr;
+                text-align: center;
             }
 
-            .prescription-actions {
-                justify-content: flex-start;
+            .patient-avatar {
+                margin: 0 auto;
+            }
+
+            .patient-stats {
+                justify-content: center;
+            }
+
+            .patient-actions {
+                justify-content: center;
             }
         }
     </style>
@@ -345,13 +363,13 @@ $prescriptions = $stmt->get_result();
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="patients.php" class="nav-link">
+                        <a href="patients.php" class="nav-link active">
                             <i class="fas fa-users"></i>
                             <span>Patients</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="prescriptions.php" class="nav-link active">
+                        <a href="prescriptions.php" class="nav-link">
                             <i class="fas fa-prescription"></i>
                             <span>Prescriptions</span>
                         </a>
@@ -381,55 +399,57 @@ $prescriptions = $stmt->get_result();
                         <?php echo strtoupper(substr($doctor['name'], 0, 1)); ?>
                     </div>
                     <div class="welcome-text">
-                        <h1>Prescriptions</h1>
+                        <h1>Patients</h1>
                         <p><?php echo htmlspecialchars($doctor['hospital_name']); ?></p>
                     </div>
                 </div>
             </header>
 
-            <!-- Prescriptions Section -->
-            <section class="prescriptions-section">
+            <!-- Patients Section -->
+            <section class="patients-section">
                 <div class="section-header">
-                    <h2>All Prescriptions</h2>
+                    <h2>Patient List</h2>
                 </div>
 
                 <div class="search-box">
-                    <input type="text" class="search-input" placeholder="Search prescriptions..." id="searchInput">
+                    <input type="text" class="search-input" placeholder="Search patients..." id="searchInput">
                 </div>
 
-                <div class="prescription-list">
-                    <?php if ($prescriptions->num_rows > 0): ?>
-                        <?php while ($prescription = $prescriptions->fetch_assoc()): ?>
-                            <div class="prescription-card">
-                                <div class="prescription-info">
-                                    <h4><?php echo htmlspecialchars($prescription['first_name'] . ' ' . $prescription['last_name']); ?></h4>
-                                    <p><i class="fas fa-phone"></i> <?php echo htmlspecialchars($prescription['phone']); ?></p>
-                                    <p><i class="fas fa-calendar"></i> <?php echo date('d M Y', strtotime($prescription['appointment_date'])); ?></p>
-                                    <p><i class="fas fa-clock"></i> <?php echo date('h:i A', strtotime($prescription['appointment_time'])); ?></p>
-                                    
-                                    <div class="prescription-details">
-                                        <h5>Diagnosis</h5>
-                                        <p><?php echo nl2br(htmlspecialchars($prescription['diagnosis'])); ?></p>
-                                        
-                                        <h5>Medications</h5>
-                                        <p><?php echo nl2br(htmlspecialchars($prescription['medications'])); ?></p>
+                <div class="patient-list">
+                    <?php if ($patients->num_rows > 0): ?>
+                        <?php while ($patient = $patients->fetch_assoc()): ?>
+                            <div class="patient-card">
+                                <div class="patient-avatar">
+                                    <?php echo strtoupper(substr($patient['first_name'], 0, 1)); ?>
+                                </div>
+                                <div class="patient-info">
+                                    <h4><?php echo htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']); ?></h4>
+                                    <p><i class="fas fa-phone"></i> <?php echo htmlspecialchars($patient['number']); ?></p>
+                                    <p><i class="fas fa-envelope"></i> <?php echo htmlspecialchars($patient['email']); ?></p>
+                                    <div class="patient-stats">
+                                        <span class="stat-item">
+                                            <i class="fas fa-calendar-check"></i> <?php echo $patient['appointment_count']; ?> Visits
+                                        </span>
+                                        <span class="stat-item">
+                                            <i class="fas fa-clock"></i> Last Visit: <?php echo date('d M Y', strtotime($patient['last_visit'])); ?>
+                                        </span>
                                     </div>
                                 </div>
-                                <div class="prescription-actions">
-                                    <button class="btn btn-primary" onclick="printPrescription(<?php echo $prescription['prescription_id']; ?>)">
-                                        <i class="fas fa-print"></i>
-                                        <span>Print</span>
-                                    </button>
-                                    <button class="btn btn-secondary" onclick="viewPatientDetails(<?php echo $prescription['patient_id']; ?>)">
+                                <div class="patient-actions">
+                                    <button class="btn btn-primary" onclick="viewPatientDetails(<?php echo $patient['patientID']; ?>)">
                                         <i class="fas fa-user"></i>
-                                        <span>View Patient</span>
+                                        <span>View Details</span>
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="viewMedicalHistory(<?php echo $patient['patientID']; ?>)">
+                                        <i class="fas fa-file-medical"></i>
+                                        <span>Medical History</span>
                                     </button>
                                 </div>
                             </div>
                         <?php endwhile; ?>
                     <?php else: ?>
                         <div class="empty-state">
-                            <p>No prescriptions found</p>
+                            <p>No patients found</p>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -441,24 +461,20 @@ $prescriptions = $stmt->get_result();
         // Search functionality
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
-            const prescriptionCards = document.querySelectorAll('.prescription-card');
+            const patientCards = document.querySelectorAll('.patient-card');
             
-            prescriptionCards.forEach(card => {
+            patientCards.forEach(card => {
                 const patientName = card.querySelector('h4').textContent.toLowerCase();
-                const diagnosis = card.querySelector('.prescription-details p:first-of-type').textContent.toLowerCase();
-                const medications = card.querySelector('.prescription-details p:last-of-type').textContent.toLowerCase();
+                const patientPhone = card.querySelector('.patient-info p:first-child').textContent.toLowerCase();
+                const patientEmail = card.querySelector('.patient-info p:nth-child(2)').textContent.toLowerCase();
                 
-                if (patientName.includes(searchTerm) || diagnosis.includes(searchTerm) || medications.includes(searchTerm)) {
+                if (patientName.includes(searchTerm) || patientPhone.includes(searchTerm) || patientEmail.includes(searchTerm)) {
                     card.style.display = 'grid';
                 } else {
                     card.style.display = 'none';
                 }
             });
         });
-
-        function printPrescription(prescriptionId) {
-            window.open(`prestemplate.php?id=${prescriptionId}&print=true`, '_blank');
-        }
 
         function viewPatientDetails(patientId) {
             fetch(`get_patient_details.php?id=${patientId}`)
@@ -470,6 +486,11 @@ $prescriptions = $stmt->get_result();
                     console.error('Error:', error);
                     alert('Error loading patient details');
                 });
+        }
+
+        function viewMedicalHistory(patientId) {
+            // Implement medical history view
+            window.location.href = `medical_records.php?patient_id=${patientId}`;
         }
     </script>
 </body>
