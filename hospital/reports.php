@@ -1,241 +1,241 @@
+<?php
+  // Start session if not already started
+  if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
-    <?php
-      // Start session if not already started
-      if (session_status() == PHP_SESSION_NONE) {
-        session_start();
+// Check if user is logged in and is a hospital admin
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'hospital_admin') {
+    header("Location: hospitaladminlogin.php");
+    exit();
+}
+
+// Include database connection
+require_once('../config/configdatabase.php');
+
+// Get hospital admin ID from session
+$admin_id = $_SESSION['user_id'];
+
+// Fetch hospital information based on admin ID
+$hospital_query = "SELECT h.* FROM hospital h 
+                  JOIN hospitaladmin ha ON h.id = ha.hospitalid 
+                  WHERE ha.adminid = ?";
+
+$stmt = $conn->prepare($hospital_query);
+$stmt->bind_param("i", $admin_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows > 0) {
+    $hospital = $result->fetch_assoc();
+    $hospital_name = $hospital['name'];
+    // Create location string from available fields
+    $hospital_location = $hospital['city'] . ', ' . $hospital['district'] . ', ' . $hospital['zone'];
+} else {
+    // If no hospital found, redirect to login
+    header("Location: hospitaladminlogin.php");
+    exit();
+}
+
+// Fetch admin information
+$admin_query = "SELECT name FROM hospitaladmin WHERE adminid = ?";
+$stmt = $conn->prepare($admin_query);
+$stmt->bind_param("i", $admin_id);
+$stmt->execute();
+$admin_result = $stmt->get_result();
+
+if ($admin_result->num_rows > 0) {
+    $admin = $admin_result->fetch_assoc();
+    $admin_name = $admin['name'];
+} else {
+    $admin_name = "Admin";
+}
+include('sidebar.php');
+?>
+<style>
+    .reports-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
     }
-    
-    // Check if user is logged in and is a hospital admin
-    if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'hospital_admin') {
-        header("Location: hospitaladminlogin.php");
-        exit();
+
+    .report-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     }
-    
-    // Include database connection
-    require_once('../config/configdatabase.php');
-    
-    // Get hospital admin ID from session
-    $admin_id = $_SESSION['user_id'];
-    
-    // Fetch hospital information based on admin ID
-    $hospital_query = "SELECT h.* FROM hospital h 
-                      JOIN hospitaladmin ha ON h.id = ha.hospitalid 
-                      WHERE ha.adminid = ?";
-    
-    $stmt = $conn->prepare($hospital_query);
-    $stmt->bind_param("i", $admin_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $hospital = $result->fetch_assoc();
-        $hospital_name = $hospital['name'];
-        $hospital_location = $hospital['location'];
-    } else {
-        // If no hospital found, redirect to login
-        header("Location: hospitaladminlogin.php");
-        exit();
+
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
     }
-    
-    // Fetch admin information
-    $admin_query = "SELECT name FROM hospitaladmin WHERE adminid = ?";
-    $stmt = $conn->prepare($admin_query);
-    $stmt->bind_param("i", $admin_id);
-    $stmt->execute();
-    $admin_result = $stmt->get_result();
-    
-    if ($admin_result->num_rows > 0) {
-        $admin = $admin_result->fetch_assoc();
-        $admin_name = $admin['name'];
-    } else {
-        $admin_name = "Admin";
+
+    .report-title {
+        font-size: 18px;
+        color: var(--text-color);
     }
-    include('sidebar.php');
-    ?>
-    <style>
-        .reports-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
 
-        .report-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
+    .report-actions {
+        display: flex;
+        gap: 10px;
+    }
 
-        .report-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
+    .report-action {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        cursor: pointer;
+        background: var(--background-color);
+        color: var(--text-color);
+        transition: all 0.3s ease;
+    }
 
-        .report-title {
-            font-size: 18px;
-            color: var(--text-color);
-        }
+    .report-action:hover {
+        background: var(--primary-color);
+        color: white;
+    }
 
-        .report-actions {
-            display: flex;
-            gap: 10px;
-        }
+    .report-content {
+        margin-bottom: 20px;
+    }
 
-        .report-action {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            cursor: pointer;
-            background: var(--background-color);
-            color: var(--text-color);
-            transition: all 0.3s ease;
-        }
+    .report-stat {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
 
-        .report-action:hover {
-            background: var(--primary-color);
-            color: white;
-        }
+    .stat-label {
+        flex: 1;
+        font-size: 14px;
+        color: #64748b;
+    }
 
-        .report-content {
-            margin-bottom: 20px;
-        }
+    .stat-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-color);
+    }
 
-        .report-stat {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+    .progress-bar {
+        height: 8px;
+        background: var(--background-color);
+        border-radius: 4px;
+        overflow: hidden;
+    }
 
-        .stat-label {
-            flex: 1;
-            font-size: 14px;
-            color: #64748b;
-        }
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-color);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
 
-        .stat-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-color);
-        }
+    .report-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #64748b;
+    }
 
-        .progress-bar {
-            height: 8px;
-            background: var(--background-color);
-            border-radius: 4px;
-            overflow: hidden;
-        }
+    .report-date {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
 
-        .progress-fill {
-            height: 100%;
-            background: var(--primary-color);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
+    .report-status {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+    }
 
-        .report-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: #64748b;
-        }
+    .status-completed {
+        background: #dcfce7;
+        color: #16a34a;
+    }
 
-        .report-date {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+    .status-pending {
+        background: #fef3c7;
+        color: #d97706;
+    }
 
-        .report-status {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-weight: 500;
-        }
+    .recent-reports {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 20px;
+    }
 
-        .status-completed {
-            background: #dcfce7;
-            color: #16a34a;
-        }
+    .report-list {
+        margin-top: 20px;
+    }
 
-        .status-pending {
-            background: #fef3c7;
-            color: #d97706;
-        }
+    .report-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
 
-        .recent-reports {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-        }
+    .report-item:hover {
+        background: var(--background-color);
+    }
 
-        .report-list {
-            margin-top: 20px;
-        }
+    .report-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--background-color);
+        color: var(--primary-color);
+    }
 
-        .report-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
+    .report-details {
+        flex: 1;
+    }
 
-        .report-item:hover {
-            background: var(--background-color);
-        }
+    .report-details h4 {
+        margin: 0 0 5px 0;
+        color: var(--text-color);
+    }
 
-        .report-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--background-color);
-            color: var(--primary-color);
-        }
+    .report-details p {
+        margin: 0;
+        font-size: 14px;
+        color: #64748b;
+    }
 
-        .report-details {
-            flex: 1;
-        }
+    .hospital-info {
+        padding: 0 20px;
+    }
 
-        .report-details h4 {
-            margin: 0 0 5px 0;
-            color: var(--text-color);
-        }
+    .hospital-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-color);
+    }
 
-        .report-details p {
-            margin: 0;
-            font-size: 14px;
-            color: #64748b;
-        }
-
-        .hospital-info {
-            padding: 0 20px;
-        }
-
-        .hospital-title {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-
-        .hospital-address {
-            margin: 4px 0 0;
-            font-size: 14px;
-            color: #64748b;
-        }
-    </style>
+    .hospital-address {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: #64748b;
+    }
+</style>
 </head>
 <body>
    

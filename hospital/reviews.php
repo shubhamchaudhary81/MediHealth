@@ -30,7 +30,8 @@
     if ($result->num_rows > 0) {
         $hospital = $result->fetch_assoc();
         $hospital_name = $hospital['name'];
-        $hospital_location = $hospital['location'];
+    $hospital_location = $hospital['city'] . ', ' . $hospital['district'] . ', ' . $hospital['zone'];
+    // $hospital_location = $hospital['location'];
     } else {
         // If no hospital found, redirect to login
         header("Location: hospitaladminlogin.php");
