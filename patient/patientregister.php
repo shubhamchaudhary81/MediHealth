@@ -244,26 +244,15 @@ $conn->close();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediPoint - Patient Registration</title>
+  <!-- <link rel="stylesheet" href="../css/patientregister.css"> -->
   <link rel="stylesheet" href="../css/register.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <style>
-    /* Header Styles */
-    /* .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      background: white;
-    } */
-
    
-  /* Header */
-  header {
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-icons@latest/dist/umd/lucide.min.js"> -->
+  <!-- <script src="https://unpkg.com/lucide@latest"></script> -->
+  <style>
+    /* Header */
+   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -324,7 +313,7 @@ $conn->close();
   .btn-register:hover {
     background: #0056b3;
   }
-  
+
     .form-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -438,10 +427,10 @@ $conn->close();
             <div class="item2">
                 <nav>
                     <ul>
-                        <li><a href="#about">About Us</a></li>
-                        <li><a href="#blog">Blog</a></li>
-                        <li><a href="#contact">Contact</a></li>
-                        <li><a href="#contact">Review</a></li>
+                        <li><a href="../about.php">About Us</a></li>
+                        <li><a href="../blog.php">Blog</a></li>
+                        <li><a href="../contact.php">Contact</a></li>
+                        <li><a href="../contact.php">Review</a></li>
                         
                     </ul>
                 </nav>
@@ -453,12 +442,11 @@ $conn->close();
             </div>
         </header>
     </div>
-
   <div class="auth-page">
     <div class="auth-container">
       <div class="auth-content">
         <div class="auth-header">
-          <a href="" class="logo">
+          <a href="index.html" class="logo">
             <div class="logo-icon">
               <i data-lucide="file-text"></i>
             </div>

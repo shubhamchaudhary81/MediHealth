@@ -54,8 +54,8 @@ $doctors_query = "SELECT d.doctor_id, d.name, d.specialization, d.experience,
                  FROM doctor d 
                  JOIN department dep ON d.department_id = dep.department_id 
                  JOIN hospital h ON d.hospitalid = h.id 
-                 WHERE d.status = 'active' 
-                 ORDER BY d.name LIMIT 5";
+                 WHERE d.status = 'active' AND d.is_specialist = 1
+                 ORDER BY d.name";
 $doctors_result = $conn->query($doctors_query);
 ?>
 
@@ -242,41 +242,46 @@ $doctors_result = $conn->query($doctors_query);
           <p>Our team of experienced doctors is dedicated to providing you with the best care.</p>
         </div>
 
-        <div class="doctors-slider">
-          <?php if ($doctors_result && $doctors_result->num_rows > 0): ?>
-            <?php while ($doctor = $doctors_result->fetch_assoc()): ?>
-              <div class="doctor-card">
-                <div class="doctor-image">
-                  <img src="../assets/doctor-placeholder.jpg" alt="<?php echo htmlspecialchars($doctor['name']); ?>">
-                </div>
-                <div class="doctor-info">
-                  <h3><?php echo htmlspecialchars($doctor['name']); ?></h3>
-                  <div class="doctor-specialty">
-                    <span class="specialty-tag"><?php echo htmlspecialchars($doctor['specialization']); ?></span>
-                    <span class="department-tag"><?php echo htmlspecialchars($doctor['department_name']); ?></span>
+        <div class="doctors-slider-container">
+          <button class="slider-arrow prev-arrow" onclick="slideDoctors('prev')">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          
+          <div class="doctors-slider">
+            <?php if ($doctors_result && $doctors_result->num_rows > 0): ?>
+              <?php while ($doctor = $doctors_result->fetch_assoc()): ?>
+                <div class="doctor-card">
+                  <div class="doctor-image">
+                    <img src="../assets/doctor-placeholder.jpg" alt="<?php echo htmlspecialchars($doctor['name']); ?>">
                   </div>
-                  <div class="doctor-details">
-                    <div class="detail-item">
-                      <i class="fas fa-hospital"></i>
-                      <span><?php echo htmlspecialchars($doctor['hospital_name']); ?></span>
+                  <div class="doctor-info">
+                    <h3><?php echo htmlspecialchars($doctor['name']); ?></h3>
+                    <div class="doctor-specialty">
+                      <span class="specialty-tag"><?php echo htmlspecialchars($doctor['specialization']); ?></span>
+                      <span class="department-tag"><?php echo htmlspecialchars($doctor['department_name']); ?></span>
                     </div>
-                    <div class="detail-item">
-                      <i class="fas fa-clock"></i>
-                      <span><?php echo $doctor['experience']; ?> years experience</span>
+                    <div class="doctor-details">
+                      <div class="detail-item">
+                        <i class="fas fa-hospital"></i>
+                        <span><?php echo htmlspecialchars($doctor['hospital_name']); ?></span>
+                      </div>
+                      <div class="detail-item">
+                        <i class="fas fa-clock"></i>
+                        <span><?php echo $doctor['experience']; ?> years experience</span>
+                      </div>
                     </div>
+                    <a href="bookappointment.php?doctor_id=<?php echo $doctor['doctor_id']; ?>" class="btn-doctor">
+                      Book Appointment
+                    </a>
                   </div>
-                  <a href="bookappointment.php?doctor_id=<?php echo $doctor['doctor_id']; ?>" class="btn-doctor">
-                    Book Appointment
-                  </a>
                 </div>
-              </div>
-            <?php endwhile; ?>
-          <?php else: ?>
-            <div class="no-data">
-              <i class="fas fa-user-md"></i>
-              <p>No doctors available at the moment.</p>
-            </div>
-          <?php endif; ?>
+              <?php endwhile; ?>
+            <?php endif; ?>
+          </div>
+
+          <button class="slider-arrow next-arrow" onclick="slideDoctors('next')">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </section>
@@ -688,4 +693,182 @@ $doctors_result = $conn->query($doctors_query);
     height: 160px;
   }
 }
+
+/* Doctors Section Styles */
+.doctors-section {
+  padding: 4rem 0;
+  background: #f8f9fa;
+}
+
+.doctors-slider-container {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.doctors-slider {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.doctor-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.doctor-card:hover {
+  transform: translateY(-5px);
+}
+
+.doctor-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.doctor-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.doctor-info {
+  padding: 1.5rem;
+}
+
+.doctor-info h3 {
+  color: #2c3e50;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.doctor-specialty {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.specialty-tag, .department-tag {
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.specialty-tag {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.department-tag {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.doctor-details {
+  margin-bottom: 1.5rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.detail-item i {
+  color: #3498db;
+}
+
+.btn-doctor {
+  display: block;
+  width: 100%;
+  padding: 0.8rem;
+  background: #3498db;
+  color: white;
+  text-align: center;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+}
+
+.btn-doctor:hover {
+  background: #2980b9;
+}
+
+.slider-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease;
+}
+
+.slider-arrow:hover {
+  background: #f8f9fa;
+}
+
+.prev-arrow {
+  left: 0;
+}
+
+.next-arrow {
+  right: 0;
+}
+
+@media (max-width: 1200px) {
+  .doctors-slider {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .doctors-slider {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .doctors-slider {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
+
+<script>
+  let currentSlide = 0;
+  const doctorsSlider = document.querySelector('.doctors-slider');
+  const doctorCards = document.querySelectorAll('.doctor-card');
+  const cardsPerView = 4;
+  const totalSlides = Math.ceil(doctorCards.length / cardsPerView);
+
+  function slideDoctors(direction) {
+    if (direction === 'next' && currentSlide < totalSlides - 1) {
+      currentSlide++;
+    } else if (direction === 'prev' && currentSlide > 0) {
+      currentSlide--;
+    }
+
+    const offset = currentSlide * -100;
+    doctorsSlider.style.transform = `translateX(${offset}%)`;
+  }
+</script>

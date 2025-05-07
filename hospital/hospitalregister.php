@@ -385,7 +385,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   </style>
 </head>
 <body>
-<div class="container1">
+<div class="container">
         <header>
             <!-- <div class="logo">
                 <img src="Medihealth_1-removebg-preview.png" alt="">
@@ -395,10 +395,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <div class="item2">
                 <nav>
                     <ul>
-                        <li><a href="#about">About Us</a></li>
-                        <li><a href="#blog">Blog</a></li>
-                        <li><a href="#contact">Contact</a></li>
-                        <li><a href="#contact">Review</a></li>
+                    <li><a href="../about.php">About Us</a></li>
+                        <li><a href="../blog.php">Blog</a></li>
+                        <li><a href="../contact.php">Contact</a></li>
+                        <li><a href="../contact.php">Review</a></li>
                         
                     </ul>
                 </nav>

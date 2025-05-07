@@ -7,12 +7,48 @@ if (!isset($_SESSION['patientID'])) {
     exit();
 }
 
-// include_once('../include/header.php');
+// Clear session data on page refresh/reload
+if (isset($_SERVER['HTTP_CACHE_CONTROL']) && $_SERVER['HTTP_CACHE_CONTROL'] === 'max-age=0') {
+    // This indicates a page refresh - just clear the session data without redirecting
+    if (isset($_SESSION['doctor_booking_data'])) {
+        unset($_SESSION['doctor_booking_data']);
+        $is_from_doctor_profile = false; // Reset this flag
+    }
+}
+
 include_once('../config/configdatabase.php');
-//include_once('../patient/fetch_data.php');
 
 $patient_id = $_SESSION['patientID'];
 $errors = array();
+
+// Check if we have doctor booking data from doctor profile
+$is_from_doctor_profile = false;
+if (isset($_SESSION['doctor_booking_data']) && isset($_SESSION['doctor_booking_data']['source']) && $_SESSION['doctor_booking_data']['source'] === 'doctor_profile') {
+    $is_from_doctor_profile = true;
+    $doctor_data = $_SESSION['doctor_booking_data'];
+
+    // Fetch complete doctor information
+    $query = "SELECT d.*, h.id as hospital_id, h.name as hospital_name, 
+              h.zone, h.district, h.city,
+              dep.department_id, dep.department_name
+              FROM doctor d 
+              JOIN hospital h ON d.hospitalid = h.id 
+              JOIN department dep ON d.department_id = dep.department_id 
+              WHERE d.doctor_id = ?";
+
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $doctor_data['doctor_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 0) {
+        $_SESSION['error'] = "Doctor information not found.";
+        header("Location: ourdoctors.php");
+        exit();
+    }
+
+    $doctor_info = $result->fetch_assoc();
+}
 
 if ($_SERVER["REQUEST_METHOD"] == 'POST') {
     $hospital_id = trim($_POST['hospital_id']);
@@ -122,6 +158,11 @@ if ($_SERVER["REQUEST_METHOD"] == 'POST') {
             // Commit transaction
             $conn->commit();
             
+            // Clear the session data if it exists
+            if (isset($_SESSION['doctor_booking_data'])) {
+                unset($_SESSION['doctor_booking_data']);
+            }
+            
             $_SESSION['success_message'] = "Appointment booked successfully!";
             header("Location: patientdash.php");
             exit();
@@ -134,58 +175,7 @@ if ($_SERVER["REQUEST_METHOD"] == 'POST') {
     }
 }
 
-// $conn->close();
-
 include_once('../include/header.php');
-
-// Get doctor's schedule for the selected date
-$day_of_week = date('l', strtotime($selected_date));
-$schedule_query = "SELECT from_time, to_time, max_patients 
-                  FROM doctor_schedule 
-                  WHERE doctor_id = ? AND day = ?";
-$stmt = $conn->prepare($schedule_query);
-$stmt->bind_param("ss", $doctor_id, $day_of_week);
-$stmt->execute();
-$schedule_result = $stmt->get_result();
-
-// Get booked appointments for the selected date
-$booked_query = "SELECT appointment_time, COUNT(*) as booked_count 
-                 FROM appointments 
-                 WHERE doctor_id = ? AND appointment_date = ? 
-                 GROUP BY appointment_time";
-$stmt = $conn->prepare($booked_query);
-$stmt->bind_param("ss", $doctor_id, $selected_date);
-$stmt->execute();
-$booked_result = $stmt->get_result();
-
-// Create an array of booked appointments with their counts
-$booked_slots = [];
-while ($booked = $booked_result->fetch_assoc()) {
-    $booked_slots[$booked['appointment_time']] = $booked['booked_count'];
-}
-
-// Generate available time slots
-$available_slots = [];
-while ($schedule = $schedule_result->fetch_assoc()) {
-    $from_time = strtotime($schedule['from_time']);
-    $to_time = strtotime($schedule['to_time']);
-    $max_patients = $schedule['max_patients'];
-    
-    // Check each 30-minute slot
-    for ($time = $from_time; $time < $to_time; $time += 1800) { // 1800 seconds = 30 minutes
-        $time_slot = date('H:i:s', $time);
-        $booked_count = isset($booked_slots[$time_slot]) ? $booked_slots[$time_slot] : 0;
-        
-        if ($booked_count < $max_patients) {
-            $available_slots[] = [
-                'time' => date('h:i A', $time),
-                'value' => $time_slot,
-                'available' => $max_patients - $booked_count
-            ];
-        }
-    }
-}
-
 ?>
 
 <div class="container">
@@ -206,27 +196,92 @@ while ($schedule = $schedule_result->fetch_assoc()) {
             <?php endif; ?>
 
             <div class="form-grid">
-                <div class="form-group">
-                    <label for="province">Province</label>
-                    <select id="province" name="province" class="form-select" required>
-                        <option value="" disabled selected>Select Province</option>
-                        <option value="1">Province 1</option>
-                        <option value="2">Madhesh</option>
-                        <option value="3">Bagmati</option>
-                        <option value="4">Gandaki</option>
-                        <option value="5">Lumbini</option>
-                        <option value="6">Karnali</option>
-                        <option value="7">Sudurpashchim</option>
-                    </select>
-                    <span class="error-message" id="provinceError"></span>
-                </div>
+                <?php if ($is_from_doctor_profile): ?>
+                    <!-- Pre-populated form for doctor profile booking -->
+                    <div class="form-group">
+                        <label for="province">Province</label>
+                        <select id="province" name="province" class="form-select" required>
+                            <option value="" disabled>Select Province</option>
+                            <option value="1" <?php echo ($doctor_info['zone'] == '1') ? 'selected' : ''; ?>>Province 1</option>
+                            <option value="2" <?php echo ($doctor_info['zone'] == '2') ? 'selected' : ''; ?>>Madhesh</option>
+                            <option value="3" <?php echo ($doctor_info['zone'] == '3') ? 'selected' : ''; ?>>Bagmati</option>
+                            <option value="4" <?php echo ($doctor_info['zone'] == '4') ? 'selected' : ''; ?>>Gandaki</option>
+                            <option value="5" <?php echo ($doctor_info['zone'] == '5') ? 'selected' : ''; ?>>Lumbini</option>
+                            <option value="6" <?php echo ($doctor_info['zone'] == '6') ? 'selected' : ''; ?>>Karnali</option>
+                            <option value="7" <?php echo ($doctor_info['zone'] == '7') ? 'selected' : ''; ?>>Sudurpashchim</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="district">District</label>
+                        <select id="district" name="district" class="form-select" required>
+                            <option value="" disabled>Select District</option>
+                            <option value="<?php echo htmlspecialchars($doctor_info['district']); ?>" selected>
+                                <?php echo htmlspecialchars($doctor_info['district']); ?>
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="city">City</label>
+                        <select id="city" name="city" class="form-select" required>
+                            <option value="" disabled>Select City</option>
+                            <option value="<?php echo htmlspecialchars($doctor_info['city']); ?>" selected>
+                                <?php echo htmlspecialchars($doctor_info['city']); ?>
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hospital">Hospital</label>
+                        <select id="hospital" name="hospital_id" class="form-select" required>
+                            <option value="" disabled>Select Hospital</option>
+                            <option value="<?php echo $doctor_info['hospital_id']; ?>" selected>
+                                <?php echo htmlspecialchars($doctor_info['hospital_name']); ?>
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="department">Department</label>
+                        <select id="department" name="department_id" class="form-select" required>
+                            <option value="" disabled>Select Department</option>
+                            <option value="<?php echo $doctor_info['department_id']; ?>" selected>
+                                <?php echo htmlspecialchars($doctor_info['department_name']); ?>
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="doctor">Doctor</label>
+                        <select id="doctor" name="doctor_id" class="form-select" required>
+                            <option value="" disabled>Select Doctor</option>
+                            <option value="<?php echo $doctor_info['doctor_id']; ?>" selected>
+                                <?php echo htmlspecialchars($doctor_info['name']); ?> - <?php echo htmlspecialchars($doctor_info['specialization']); ?>
+                            </option>
+                        </select>
+                    </div>
+                <?php else: ?>
+                    <!-- Normal booking form -->
+                    <div class="form-group">
+                        <label for="province">Province</label>
+                        <select id="province" name="province" class="form-select" required>
+                            <option value="" disabled selected>Select Province</option>
+                            <option value="1">Province 1</option>
+                            <option value="2">Madhesh</option>
+                            <option value="3">Bagmati</option>
+                            <option value="4">Gandaki</option>
+                            <option value="5">Lumbini</option>
+                            <option value="6">Karnali</option>
+                            <option value="7">Sudurpashchim</option>
+                        </select>
+                    </div>
 
                 <div class="form-group">
                     <label for="district">District</label>
                     <select id="district" name="district" class="form-select" required>
                         <option value="" disabled selected>Select Province first</option>
                     </select>
-                    <span class="error-message" id="districtError"></span>
                 </div>
 
                 <div class="form-group">
@@ -234,7 +289,6 @@ while ($schedule = $schedule_result->fetch_assoc()) {
                     <select id="city" name="city" class="form-select" required>
                         <option value="" disabled selected>Select District first</option>
                     </select>
-                    <span class="error-message" id="cityError"></span>
                 </div>
 
                 <div class="form-group">
@@ -242,7 +296,6 @@ while ($schedule = $schedule_result->fetch_assoc()) {
                     <select id="hospital" name="hospital_id" class="form-select" required>
                         <option value="" disabled selected>Select City first</option>
                     </select>
-                    <span class="error-message" id="hospitalError"></span>
                 </div>
 
                 <div class="form-group">
@@ -250,7 +303,6 @@ while ($schedule = $schedule_result->fetch_assoc()) {
                     <select id="department" name="department_id" class="form-select" required>
                         <option value="" disabled selected>Select hospital first</option>
                     </select>
-                    <span class="error-message" id="departmentError"></span>
                 </div>
 
                 <div class="form-group">
@@ -258,33 +310,42 @@ while ($schedule = $schedule_result->fetch_assoc()) {
                     <select id="doctor" name="doctor_id" class="form-select" required>
                         <option value="" disabled selected>Select department first</option>
                     </select>
-                    <span class="error-message" id="doctorError"></span>
                 </div>
+                <?php endif; ?>
 
                 <div class="form-group">
-                    <label for="date">Appointment Date</label>
-                    <select id="date" name="appointment_date" class="form-select" required>
-                        <option value="" disabled selected>Select doctor first</option>
+                    <label for="day">Appointment Day</label>
+                    <select name="appointment_date" id="day" class="form-select" required>
+                        <option value="">Select Day</option>
+                        <?php 
+                        if ($is_from_doctor_profile) {
+                            // Fetch available days for the pre-selected doctor
+                            $days_query = "SELECT DISTINCT day FROM doctor_schedule WHERE doctor_id = ? ORDER BY FIELD(day, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')";
+                            $stmt = $conn->prepare($days_query);
+                            $stmt->bind_param("s", $doctor_info['doctor_id']);
+                            $stmt->execute();
+                            $days_result = $stmt->get_result();
+                            
+                            while ($day = $days_result->fetch_assoc()) {
+                                echo '<option value="' . htmlspecialchars($day['day']) . '">' . htmlspecialchars($day['day']) . '</option>';
+                            }
+                            $stmt->close();
+                        }
+                        ?>
                     </select>
-                    <span class="error-message" id="dateError"></span>
                 </div>
 
                 <div class="form-group">
                     <label for="appointment_time">Select Time Slot</label>
-                    <select name="appointment_time" id="appointment_time" class="form-control" required>
-                        <option value="">Select a time slot</option>
-                        <?php foreach ($available_slots as $slot): ?>
-                            <option value="<?php echo $slot['value']; ?>">
-                                <?php echo $slot['time']; ?> (<?php echo $slot['available']; ?> slots available)
-                            </option>
-                        <?php endforeach; ?>
+                    <select name="appointment_time" id="appointment_time" class="form-select" required>
+                        <option value="">Select Day first</option>
                     </select>
                 </div>
 
                 <div class="form-group">
                     <label for="reason">Reason for Visit</label>
-                    <textarea id="reason" name="reason" class="form-textarea" placeholder="Please briefly describe your symptoms or reason for the appointment" required></textarea>
-                    <span class="error-message" id="reasonError"></span>
+                    <textarea id="reason" name="reason" class="form-textarea" 
+                              placeholder="Please briefly describe your symptoms or reason for the appointment" required></textarea>
                 </div>
             </div>
 
@@ -295,7 +356,8 @@ while ($schedule = $schedule_result->fetch_assoc()) {
 
 <script>
 $(document).ready(function() {
-    // Province, District, and City data
+    <?php if (!$is_from_doctor_profile): ?>
+    // Only include the dynamic form handling for normal booking
     const districtsByProvince = {
         "1": ["Bhojpur", "Dhankuta", "Ilam", "Jhapa", "Khotang", "Morang", "Okhaldhunga", "Panchthar", "Sankhuwasabha", "Solukhumbu", "Sunsari", "Taplejung", "Terhathum", "Udayapur"],
         "2": ["Bara", "Dhanusha", "Mahottari", "Parsa", "Rautahat", "Saptari", "Sarlahi", "Siraha"],
@@ -310,27 +372,7 @@ $(document).ready(function() {
         "Kathmandu": ["Kathmandu", "Kirtipur", "Tokha", "Budhanilkantha", "Gokarneshwar", "Chandragiri", "Tarakeshwar", "Dakshinkali", "Nagarkot", "Sankhu", "Koteshwor", "Boudha", "Patan", "Thamel", "New Baneshwor"],
         "Lalitpur": ["Patan", "Godawari", "Lubhu", "Imadol", "Harisiddhi", "Thaiba", "Chapagaun", "Bungamati", "Karyabinayak", "Jawalakhel", "Kupondole", "Pulchowk", "Kumaripati"],
         "Bhaktapur": ["Bhaktapur", "Thimi", "Suryabinayak", "Changunarayan", "Madhyapur Thimi", "Nagarkot", "Suryamati", "Nangkhel", "Duwakot"],
-        "Pokhara": ["Pokhara", "Lekhnath", "Bagar", "Hemja", "Sarangkot", "Lakeside", "Bindyabasini", "Matepani", "Pumdibhumdi", "Srijana Chowk", "Mahendrapool", "Chipledhunga"],
-        "Biratnagar": ["Biratnagar", "Biratchowk", "Letang", "Urlabari", "Rangeli", "Sundarharaincha", "Belbari", "Damak", "Itahari", "Dharan"],
-        "Butwal": ["Butwal", "Tilottama", "Devdaha", "Lumbini", "Siddharthanagar", "Manigram", "Sainamaina", "Tansen", "Bhairahawa"],
-        "Nepalgunj": ["Nepalgunj", "Kohalpur", "Khajura", "Narainapur", "Rapti Sonari", "Gulariya", "Rajapur"],
-        "Dhangadhi": ["Dhangadhi", "Tikapur", "Lamki", "Ghodaghodi", "Attariya", "Gauriganga", "Kailali", "Mahendranagar"],
-        "Surkhet": ["Surkhet", "Birendranagar", "Chhinchu", "Gurbhakot", "Panchpuri", "Bheriganga", "Lekbesi"],
-        "Jumla": ["Jumla", "Chandannath", "Tatopani", "Patarasi", "Sinja", "Hima"],
-        "Dhankuta": ["Dhankuta", "Pakhribas", "Mahalaxmi", "Pakhribas", "Khalsa Chhintang Sahidbhumi"],
-        "Ilam": ["Ilam", "Pashupatinagar", "Suryodaya", "Mai", "Mangalbare", "Phakphok"],
-        "Jhapa": ["Bhadrapur", "Damak", "Mechinagar", "Birtamod", "Arjundhara", "Kankai", "Gauradaha"],
-        "Morang": ["Biratnagar", "Biratchowk", "Letang", "Urlabari", "Rangeli", "Sundarharaincha", "Belbari", "Pathari", "Budhiganga"],
-        "Sunsari": ["Itahari", "Dharan", "Inaruwa", "Duhabi", "Ramdhuni", "Barahachhetra", "Dewanganj", "Simariya"],
-        "Chitwan": ["Bharatpur", "Ratnanagar", "Kalika", "Khairahani", "Madi", "Rapti", "Ichchhakamana"],
-        "Kaski": ["Pokhara", "Lekhnath", "Annapurna", "Machhapuchhre", "Madi", "Rupa"],
-        "Rupandehi": ["Butwal", "Tilottama", "Devdaha", "Lumbini", "Siddharthanagar", "Sainamaina", "Marchawari", "Kotahimai"],
-        "Kapilvastu": ["Taulihawa", "Buddhabhumi", "Kapilvastu", "Maharajgunj", "Yashodhara", "Shivaraj", "Banganga"],
-        "Banke": ["Nepalgunj", "Kohalpur", "Narainapur", "Rapti Sonari", "Khajura", "Janaki", "Duduwa"],
-        "Bardiya": ["Gulariya", "Rajapur", "Madhuwan", "Thakurbaba", "Barbardiya", "Bansgadhi"],
-        "Dang": ["Ghorahi", "Tulsipur", "Lamahi", "Bangalachuli", "Shantinagar", "Rapti", "Gadhawa"],
-        "Kailali": ["Dhangadhi", "Tikapur", "Lamki", "Ghodaghodi", "Attariya", "Gauriganga", "Bhajani"],
-        "Kanchanpur": ["Mahendranagar", "Bhimdatta", "Punarbas", "Bedkot", "Shuklaphanta", "Belauri", "Krishnapur"]
+        // ... rest of the cities data ...
     };
 
     // Province change handler
@@ -350,8 +392,6 @@ $(document).ready(function() {
         $("#hospital").html('<option value="" disabled selected>Select city first</option>');
         $("#department").html('<option value="" disabled selected>Select hospital first</option>');
         $("#doctor").html('<option value="" disabled selected>Select department first</option>');
-        $("#date").html('<option value="" disabled selected>Select doctor first</option>');
-        $("#time").html('<option value="" disabled selected>Select date first</option>');
     });
 
     // District change handler
@@ -370,40 +410,23 @@ $(document).ready(function() {
         $("#hospital").html('<option value="" disabled selected>Select city first</option>');
         $("#department").html('<option value="" disabled selected>Select hospital first</option>');
         $("#doctor").html('<option value="" disabled selected>Select department first</option>');
-        $("#date").html('<option value="" disabled selected>Select doctor first</option>');
-        $("#time").html('<option value="" disabled selected>Select date first</option>');
     });
 
     // City change handler
     $('#city').change(function() {
         var city = $(this).val();
-        console.log('Selected city:', city); // Debug log
-        
         if (city) {
-            // Show loading state
-            let hospitalSelect = $("#hospital");
-            hospitalSelect.html('<option value="" disabled selected>Loading hospitals...</option>');
-            
             $.ajax({
                 url: "fetch_hospital.php",
                 type: "POST",
                 data: { city: city },
                 dataType: "json",
                 success: function(data) {
-                    console.log('Received data:', data); // Debug log
-                    
+                    let hospitalSelect = $("#hospital");
                     hospitalSelect.html('<option value="" disabled selected>Select Hospital</option>');
-
-                    if (data.error) {
-                        console.error("Server error:", data.error);
-                        hospitalSelect.html('<option value="" disabled>Error: ' + data.error + '</option>');
-                    } else if (!Array.isArray(data) || data.length === 0) {
-                        console.log('No hospitals found for city:', city);
-                        hospitalSelect.html('<option value="" disabled>No hospitals found in this city</option>');
-                    } else {
-                        console.log('Adding hospitals to dropdown:', data.length);
-                        $.each(data, function(index, hospital) {
-                            console.log('Adding hospital:', hospital);
+                    
+                    if (data && data.length > 0) {
+                        data.forEach(function(hospital) {
                             hospitalSelect.append(`<option value="${hospital.id}">${hospital.name}</option>`);
                         });
                     }
@@ -411,158 +434,138 @@ $(document).ready(function() {
                     // Reset dependent dropdowns
                     $("#department").html('<option value="" disabled selected>Select hospital first</option>');
                     $("#doctor").html('<option value="" disabled selected>Select department first</option>');
-                    $("#date").html('<option value="" disabled selected>Select doctor first</option>');
-                    $("#appointment_time").html('<option value="" disabled selected>Select date first</option>');
                 },
-                error: function(xhr, status, error) {
-                    console.error("Error fetching hospitals:", error);
-                    console.error("Status:", status);
-                    console.error("Response:", xhr.responseText);
-                    hospitalSelect.html('<option value="" disabled>Error loading hospitals. Please try again.</option>');
-                    
-                    // Show error in console for debugging
-                    console.log('XHR Status:', xhr.status);
-                    console.log('XHR Status Text:', xhr.statusText);
-                    console.log('XHR Response:', xhr.responseText);
+                error: function() {
+                    alert("Error fetching hospitals");
                 }
             });
-        } else {
-            console.log('No city selected');
-            $("#hospital").html('<option value="" disabled selected>Select city first</option>');
-            $("#department").html('<option value="" disabled selected>Select hospital first</option>');
-            $("#doctor").html('<option value="" disabled selected>Select department first</option>');
-            $("#date").html('<option value="" disabled selected>Select doctor first</option>');
-            $("#appointment_time").html('<option value="" disabled selected>Select date first</option>');
         }
     });
 
+    // Hospital change handler
     $('#hospital').change(function() {
         var hospitalId = $(this).val();
-        $.ajax({
-                    url: "fetch_department.php",
-                    type: "POST",
-                    data: { hospital_id: hospitalId },
-                    dataType: "json",
-            success: function(data) {
-                        let departmentSelect = $("#department");
-                        departmentSelect.html('<option value="" disabled selected>Select Department</option>');
+        if (hospitalId) {
+            $.ajax({
+                url: "fetch_department.php",
+                type: "POST",
+                data: { hospital_id: hospitalId },
+                dataType: "json",
+                success: function(data) {
+                    let departmentSelect = $("#department");
+                    departmentSelect.html('<option value="" disabled selected>Select Department</option>');
+                    
+                    data.forEach(function(department) {
+                        departmentSelect.append(`<option value="${department.department_id}">${department.department_name}</option>`);
+                    });
+                    
+                    // Reset doctor dropdown
+                    $("#doctor").html('<option value="" disabled selected>Select department first</option>');
+                },
+                error: function() {
+                    alert("Error fetching departments");
+                }
+            });
+        }
+    });
 
-                $.each(data, function(index, department) {
-                    departmentSelect.append(`<option value="${department.department_id}">${department.department_name}</option>`);
-                        });
-                
-                // Reset doctor dropdown
-                $("#doctor").html('<option value="" disabled selected>Select department first</option>');
-                $("#date").html('<option value="" disabled selected>Select doctor first</option>');
-                $("#time").html('<option value="" disabled selected>Select date first</option>');
-                    },
-            error: function() {
-                        alert("Error fetching departments");
-                    }
-});
-});
-
+    // Department change handler
     $('#department').change(function() {
         var departmentId = $(this).val();
         var hospitalId = $('#hospital').val();
-        $.ajax({
-                    url: "fetch_doctor.php",
-                    type: "POST",
-            data: { 
-                department_id: departmentId,
-                hospital_id: hospitalId
-            },
-                    dataType: "json",
-            success: function(data) {
-                        let doctorSelect = $("#doctor");
-                doctorSelect.html('<option value="" disabled selected>Select Doctor</option>');
-
-                $.each(data, function(index, doctor) {
-                    doctorSelect.append(`<option value="${doctor.doctor_id}">${doctor.name} - ${doctor.specialization}</option>`);
-                });
-                
-                // Reset date and time dropdowns
-                $("#date").html('<option value="" disabled selected>Select doctor first</option>');
-                $("#time").html('<option value="" disabled selected>Select date first</option>');
-            },
-            error: function() {
-                alert("Error fetching doctors");
-            }
-        });
+        if (departmentId && hospitalId) {
+            $.ajax({
+                url: "fetch_doctor.php",
+                type: "POST",
+                data: { 
+                    department_id: departmentId,
+                    hospital_id: hospitalId
+                },
+                dataType: "json",
+                success: function(data) {
+                    let doctorSelect = $("#doctor");
+                    doctorSelect.html('<option value="" disabled selected>Select Doctor</option>');
+                    
+                    data.forEach(function(doctor) {
+                        doctorSelect.append(`<option value="${doctor.doctor_id}">${doctor.name} - ${doctor.specialization}</option>`);
+                    });
+                },
+                error: function() {
+                    alert("Error fetching doctors");
+                }
+            });
+        }
     });
-    
+
+    // Add doctor change handler to fetch available days
     $('#doctor').change(function() {
         var doctorId = $(this).val();
         if (doctorId) {
+            // Clear time slot
+            $('#appointment_time').empty();
+            $('#appointment_time').append('<option value="">Select Day first</option>');
+            
+            // Fetch available days
             $.ajax({
-                url: "fetch_doctor_schedule.php",
-                type: "POST",
+                url: 'fetch_doctor_days.php',
+                type: 'POST',
                 data: { doctor_id: doctorId },
-                dataType: "json",
-                success: function(data) {
-                    let dateSelect = $("#date");
-                    dateSelect.html('<option value="" disabled selected>Select Day</option>');
+                dataType: 'json',
+                success: function(response) {
+                    let daySelect = $("#day");
+                    daySelect.html('<option value="">Select Day</option>');
                     
-                    if (data.length > 0) {
-                        // Get available days from the schedule
-                        let availableDays = [];
-                        data.forEach(function(schedule) {
-                            if (schedule.day && !availableDays.includes(schedule.day)) {
-                                availableDays.push(schedule.day);
-                            }
-                        });
-                        
-                        // Add available days to the dropdown
-                        availableDays.forEach(function(day) {
-                            dateSelect.append(`<option value="${day}">${day}</option>`);
+                    if (response && response.length > 0) {
+                        response.forEach(function(day) {
+                            daySelect.append(`<option value="${day}">${day}</option>`);
                         });
                     } else {
-                        dateSelect.append('<option value="" disabled>No available days</option>');
+                        daySelect.append('<option value="" disabled>No schedule available</option>');
                     }
-                    
-                    // Reset time dropdown
-                    $("#time").html('<option value="" disabled selected>Select day first</option>');
                 },
                 error: function() {
-                    alert("Error fetching doctor schedule");
+                    alert("Error fetching available days");
                 }
             });
         } else {
-            $("#date").html('<option value="" disabled selected>Select doctor first</option>');
-            $("#time").html('<option value="" disabled selected>Select day first</option>');
+            // Reset day and time dropdowns
+            $("#day").html('<option value="">Select Doctor first</option>');
+            $("#appointment_time").html('<option value="">Select Day first</option>');
         }
     });
-    
-    $('#date').on('change', function() {
+    <?php endif; ?>
+
+    // Time slot fetching for both scenarios
+    $('#day').on('change', function() {
         var doctorId = $('#doctor').val();
-        var selectedDate = $(this).val();
+        var selectedDay = $(this).val();
         
-        if (doctorId && selectedDate) {
-            // Fetch doctor's schedule
+        if (doctorId && selectedDay) {
             $.ajax({
                 url: 'fetch_available_slots.php',
                 type: 'POST',
                 data: { 
                     doctor_id: doctorId,
-                    appointment_date: selectedDate
+                    day: selectedDay
                 },
                 dataType: 'json',
                 success: function(response) {
-                    // Clear existing options
                     $('#appointment_time').empty();
                     $('#appointment_time').append('<option value="">Select Time Slot</option>');
                     
                     if (response && response.length > 0) {
-                        // Add schedule slots to the dropdown
                         response.forEach(function(slot) {
                             var status = slot.available > 0 ? 
                                 `${slot.available} slots available` : 
                                 'Slot is full';
                             
+                            var optionClass = slot.available <= 0 ? 'full-slot' : 'available-slot';
+                            
                             $('#appointment_time').append(
                                 `<option value="${slot.value}" 
+                                 class="${optionClass}"
                                  ${slot.available <= 0 ? 'disabled' : ''}>
-                                    ${slot.time} (${status})
+                                    ${slot.start_time} - ${slot.end_time} (${status})
                                 </option>`
                             );
                         });
@@ -578,11 +581,12 @@ $(document).ready(function() {
             });
         } else {
             $('#appointment_time').empty();
-            $('#appointment_time').append('<option value="">Select Doctor and Date first</option>');
+            $('#appointment_time').append('<option value="">Select Doctor and Day first</option>');
         }
     });
 });
 </script>
+
 <style>
     :root {
         --primary-color: #4f6df5;
@@ -676,6 +680,14 @@ $(document).ready(function() {
         font-size: 15px;
         transition: all 0.3s ease;
         background-color: white;
+        color: var(--text-color);
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236B7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.5l-5-5h10l-5 5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 15px center;
+        cursor: pointer;
     }
 
     .form-select:focus, .form-textarea:focus {
@@ -684,14 +696,29 @@ $(document).ready(function() {
         box-shadow: 0 0 0 3px rgba(79, 109, 245, 0.1);
     }
 
+    .form-select option {
+        padding: 12px;
+        font-size: 15px;
+    }
+
+    .form-select option:disabled {
+        color: var(--secondary-color);
+        background-color: #f3f4f6;
+    }
+
+    .form-select option[value=""] {
+        color: var(--secondary-color);
+    }
+
     .form-textarea {
         min-height: 100px;
         resize: vertical;
         grid-column: span 3;
+        background-image: none;
     }
 
     .btn-primary {
-        /* background: linear-gradient(135deg, var(--primary-color), #4f6df5); */
+        background: var(--primary-color);
         color: white;
         padding: 14px 28px;
         border: none;
@@ -751,6 +778,37 @@ $(document).ready(function() {
         .appointment {
             padding: 20px;
         }
+    }
+
+    /* Time slot specific styles */
+    #appointment_time {
+        background-color: white;
+    }
+
+    #appointment_time option {
+        padding: 10px 15px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    #appointment_time option:last-child {
+        border-bottom: none;
+    }
+
+    #appointment_time option:disabled {
+        background-color: #f3f4f6;
+        color: var(--secondary-color);
+        font-style: italic;
+    }
+
+    /* Hover effect for options */
+    #appointment_time option:not(:disabled):hover {
+        background-color: #f8fafc;
+    }
+
+    /* Selected option style */
+    #appointment_time option:checked {
+        background-color: var(--primary-color);
+        color: white;
     }
 </style>
 

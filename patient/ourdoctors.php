@@ -1,6 +1,54 @@
 <?php
-include_once('../include/header.php');
+session_start();
 include_once('../config/configdatabase.php');
+
+// Function to store doctor data in session
+function storeDoctorData($doctor_id, $conn) {
+    $query = "SELECT d.*, h.id as hospital_id, h.name as hospital_name, 
+              h.zone, h.district, h.city,
+              dep.department_id, dep.department_name
+              FROM doctor d 
+              JOIN hospital h ON d.hospitalid = h.id 
+              JOIN department dep ON d.department_id = dep.department_id 
+              WHERE d.doctor_id = ?";
+    
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $doctor_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        $doctor_data = $result->fetch_assoc();
+        $_SESSION['doctor_booking_data'] = [
+            'doctor_id' => $doctor_id,
+            'hospital_id' => $doctor_data['hospital_id'],
+            'department_id' => $doctor_data['department_id'],
+            'zone' => $doctor_data['zone'],
+            'district' => $doctor_data['district'],
+            'city' => $doctor_data['city'],
+            'source' => 'doctor_profile'
+        ];
+        return true;
+    }
+    $stmt->close();
+    return false;
+}
+
+// Handle booking request
+if (isset($_GET['book_doctor'])) {
+    $doctor_id = $_GET['book_doctor'];
+    if (storeDoctorData($doctor_id, $conn)) {
+        header("Location: bookappointment.php");
+        exit();
+    } else {
+        $_SESSION['error'] = "Could not find doctor information. Please try again.";
+        header("Location: ourdoctors.php");
+        exit();
+    }
+}
+
+// Include header after all potential redirects
+include_once('../include/header.php');
 
 // Fetch all doctors with their department and hospital information
 $query = "SELECT d.*, dep.department_name, h.name as hospital_name, 
@@ -8,7 +56,7 @@ $query = "SELECT d.*, dep.department_name, h.name as hospital_name,
           FROM doctor d 
           JOIN department dep ON d.department_id = dep.department_id 
           JOIN hospital h ON d.hospitalid = h.id 
-          WHERE d.status = 'active' 
+          WHERE d.status = 'active' AND d.is_specialist = 1
           ORDER BY d.name";
 $result = $conn->query($query);
 
@@ -27,40 +75,99 @@ $deptResult = $conn->query($deptQuery);
           <p>Meet our team of experienced and qualified healthcare professionals.</p>
         </div>
 
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger">
+                <?php 
+                    echo $_SESSION['error'];
+                    unset($_SESSION['error']);
+                ?>
+            </div>
+        <?php endif; ?>
+
         <!-- Filter Section -->
         <div class="filter-section">
-          <div class="search-box">
-            <input type="text" id="doctorSearch" placeholder="Search doctors by name or specialization...">
-            <i class="fas fa-search"></i>
-          </div>
-          
-          <div class="filter-options">
-            <select id="departmentFilter">
-              <option value="">All Departments</option>
-              <?php while($dept = $deptResult->fetch_assoc()): ?>
-                <option value="<?php echo htmlspecialchars($dept['department_name']); ?>">
-                  <?php echo htmlspecialchars($dept['department_name']); ?>
-                </option>
-              <?php endwhile; ?>
-            </select>
+          <form method="GET" action="" class="filter-form">
+            <div class="search-box">
+              <input type="text" name="search" placeholder="Search doctors by name or specialization..." 
+                     value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+            </div>
             
-            <select id="experienceFilter">
-              <option value="">All Experience Levels</option>
-              <option value="0-5">0-5 years</option>
-              <option value="5-10">5-10 years</option>
-              <option value="10-15">10-15 years</option>
-              <option value="15+">15+ years</option>
-            </select>
-          </div>
+            <div class="filter-options">
+              <select name="department" id="departmentFilter">
+                <option value="">All Departments</option>
+                <?php 
+                $deptResult->data_seek(0);
+                while($dept = $deptResult->fetch_assoc()): 
+                    $selected = (isset($_GET['department']) && $_GET['department'] == $dept['department_name']) ? 'selected' : '';
+                ?>
+                    <option value="<?php echo htmlspecialchars($dept['department_name']); ?>" <?php echo $selected; ?>>
+                        <?php echo htmlspecialchars($dept['department_name']); ?>
+                    </option>
+                <?php endwhile; ?>
+              </select>
+              
+              <select name="experience" id="experienceFilter">
+                <option value="">All Experience Levels</option>
+                <?php
+                $exp_ranges = [
+                    '0-5' => '0-5 years',
+                    '5-10' => '5-10 years',
+                    '10-15' => '10-15 years',
+                    '15+' => '15+ years'
+                ];
+                foreach($exp_ranges as $value => $label):
+                    $selected = (isset($_GET['experience']) && $_GET['experience'] == $value) ? 'selected' : '';
+                ?>
+                    <option value="<?php echo $value; ?>" <?php echo $selected; ?>>
+                        <?php echo $label; ?>
+                    </option>
+                <?php endforeach; ?>
+              </select>
+              
+              <button type="submit" class="filter-btn">Apply Filters</button>
+            </div>
+          </form>
         </div>
 
         <!-- Doctors Grid -->
-        <div class="doctors-grid" id="doctorsGrid">
-          <?php if($result->num_rows > 0): ?>
-            <?php while($doctor = $result->fetch_assoc()): ?>
-              <div class="doctor-card" 
-                   data-department="<?php echo htmlspecialchars($doctor['department_name']); ?>"
-                   data-experience="<?php echo $doctor['experience']; ?>">
+        <div class="doctors-grid">
+          <?php 
+          if($result->num_rows > 0):
+              while($doctor = $result->fetch_assoc()):
+                  // Apply filters
+                  $show_doctor = true;
+                  
+                  if(isset($_GET['search']) && !empty($_GET['search'])) {
+                      $search = strtolower($_GET['search']);
+                      if(strpos(strtolower($doctor['name']), $search) === false && 
+                         strpos(strtolower($doctor['specialization']), $search) === false) {
+                          $show_doctor = false;
+                      }
+                  }
+                  
+                  if(isset($_GET['department']) && !empty($_GET['department'])) {
+                      if($doctor['department_name'] != $_GET['department']) {
+                          $show_doctor = false;
+                      }
+                  }
+                  
+                  if(isset($_GET['experience']) && !empty($_GET['experience'])) {
+                      $exp = $doctor['experience'];
+                      list($min, $max) = explode('-', $_GET['experience']);
+                      if($max) {
+                          if($exp < $min || $exp > $max) {
+                              $show_doctor = false;
+                          }
+                      } else {
+                          if($exp < 15) {
+                              $show_doctor = false;
+                          }
+                      }
+                  }
+                  
+                  if($show_doctor):
+          ?>
+              <div class="doctor-card">
                 <div class="doctor-info">
                   <h3><?php echo htmlspecialchars($doctor['name']); ?></h3>
                   <div class="doctor-tags">
@@ -86,14 +193,17 @@ $deptResult = $conn->query($deptQuery);
                     </div>
                   </div>
                   <div class="doctor-actions">
-                    <a href="bookappointment.php?doctor_id=<?php echo $doctor['doctor_id']; ?>" class="btn-book">
+                    <a href="?book_doctor=<?php echo $doctor['doctor_id']; ?>" class="btn-book">
                       Book Appointment
                     </a>
                   </div>
                 </div>
               </div>
-            <?php endwhile; ?>
-          <?php else: ?>
+          <?php 
+                  endif;
+              endwhile;
+          else: 
+          ?>
             <div class="no-results">
               <i class="fas fa-user-md"></i>
               <h3>No doctors found</h3>
@@ -319,81 +429,39 @@ $deptResult = $conn->query($deptQuery);
         grid-template-columns: 1fr;
       }
     }
-  </style>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const searchInput = document.getElementById('doctorSearch');
-      const departmentFilter = document.getElementById('departmentFilter');
-      const experienceFilter = document.getElementById('experienceFilter');
-      const doctorsGrid = document.getElementById('doctorsGrid');
-      const doctorCards = document.querySelectorAll('.doctor-card');
-      
-      function filterDoctors() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const selectedDept = departmentFilter.value;
-        const selectedExp = experienceFilter.value;
-        
-        doctorCards.forEach(card => {
-          const doctorName = card.querySelector('h3').textContent.toLowerCase();
-          const doctorSpecialty = card.querySelector('.specialty-tag').textContent.toLowerCase();
-          const doctorDept = card.getAttribute('data-department');
-          const doctorExp = parseInt(card.getAttribute('data-experience'));
-          
-          let showCard = true;
-          
-          // Search filter
-          if (searchTerm && !doctorName.includes(searchTerm) && !doctorSpecialty.includes(searchTerm)) {
-            showCard = false;
-          }
-          
-          // Department filter
-          if (selectedDept && doctorDept !== selectedDept) {
-            showCard = false;
-          }
-          
-          // Experience filter
-          if (selectedExp) {
-            const [min, max] = selectedExp.split('-').map(Number);
-            if (max) {
-              if (doctorExp < min || doctorExp > max) {
-                showCard = false;
-              }
-            } else {
-              // For "15+" option
-              if (doctorExp < 15) {
-                showCard = false;
-              }
-            }
-          }
-          
-          card.style.display = showCard ? 'block' : 'none';
-        });
-        
-        // Show no results message if all cards are hidden
-        const visibleCards = document.querySelectorAll('.doctor-card[style="display: block"]');
-        const noResults = document.querySelector('.no-results');
-        
-        if (visibleCards.length === 0) {
-          if (!noResults) {
-            const noResultsDiv = document.createElement('div');
-            noResultsDiv.className = 'no-results';
-            noResultsDiv.innerHTML = `
-              <i class="fas fa-user-md"></i>
-              <h3>No doctors found</h3>
-              <p>We couldn't find any doctors matching your criteria. Please try different filters.</p>
-            `;
-            doctorsGrid.appendChild(noResultsDiv);
-          }
-        } else if (noResults) {
-          noResults.remove();
-        }
-      }
-      
-      searchInput.addEventListener('input', filterDoctors);
-      departmentFilter.addEventListener('change', filterDoctors);
-      experienceFilter.addEventListener('change', filterDoctors);
-    });
-  </script>
+    .filter-form {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+    
+    .filter-btn {
+      padding: 0.8rem 1.5rem;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    
+    .filter-btn:hover {
+      background: #2980b9;
+    }
+    
+    .alert {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+    }
+    
+    .alert-danger {
+      background: #fee2e2;
+      color: #ef4444;
+      border: 1px solid #ef4444;
+    }
+  </style>
 </body>
 </html> 
