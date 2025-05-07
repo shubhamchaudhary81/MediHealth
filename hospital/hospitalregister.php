@@ -44,73 +44,78 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if (empty($errors)) {
-        // Insert hospital
-        $stmt = $conn->prepare("INSERT INTO hospital (name, email, phone, zone, district, city, website) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        if ($stmt) {
-            $stmt->bind_param("sssssss", $hospitalName, $email, $phone, $zone, $district, $city, $website);
-            if ($stmt->execute()) {
-                $hospital_id = $stmt->insert_id;
-                $stmt->close();
-
-                // Insert departments into hospitaldepartment
-                if (!empty($departments)) {
-                    foreach ($departments as $deptName) {
-                        $deptName = trim($deptName);
-
-                        // Get department ID
-                        $deptStmt = $conn->prepare("SELECT department_id FROM department WHERE department_name = ?");
-                        if ($deptStmt) {
-                            $deptStmt->bind_param("s", $deptName);
-                            $deptStmt->execute();
-                            $deptStmt->store_result();
-
-                            if ($deptStmt->num_rows > 0) {
-                                $deptStmt->bind_result($deptId);
-                                $deptStmt->fetch();
-                                $deptStmt->close();
-
-                                // Now insert into hospitaldepartment
-                                $insertDeptStmt = $conn->prepare("INSERT INTO hospitaldepartment (hospitalid, department_id) VALUES (?, ?)");
-                                if ($insertDeptStmt) {
-                                    $insertDeptStmt->bind_param("ii", $hospital_id, $deptId);
-                                    if (!$insertDeptStmt->execute()) {
-                                        echo "<p style='color:red;'>Failed to insert into hospitaldepartment: " . $insertDeptStmt->error . "</p>";
-                                    }
-                                    $insertDeptStmt->close();
-                                } else {
-                                    echo "<p style='color:red;'>Prepare insert hospitaldepartment failed: " . $conn->error . "</p>";
-                                }
-                            } else {
-                                echo "<p style='color:red;'>Department '$deptName' not found in department table.</p>";
-                                $deptStmt->close();
-                            }
-                        } else {
-                            echo "<p style='color:red;'>Prepare department lookup failed: " . $conn->error . "</p>";
-                        }
-                    }
-                } else {
-                    echo "<p style='color:red;'>No departments selected.</p>";
-                }
-
-                // Insert admin
-                $adminid = generateAdminID($conn);
-                $hashedPassword = password_hash($adminPassword, PASSWORD_DEFAULT);
-                $adminStmt = $conn->prepare("INSERT INTO hospitaladmin (hospitalid, adminid, name, email, phone, password) VALUES (?, ?, ?, ?, ?, ?)");
-                if ($adminStmt) {
-                    $adminStmt->bind_param("iissss", $hospital_id, $adminid, $adminName, $adminEmail, $adminPhone, $hashedPassword);
-                    $adminStmt->execute();
-                    $adminStmt->close();
-
-                    header("Location: hospitaladminlogin.php"); // Redirect on success
-                    exit;
-                } else {
-                    echo "<p style='color:red;'>Admin insert failed: " . $conn->error . "</p>";
-                }
-            } else {
-                echo "<p style='color:red;'>Hospital insert failed: " . $stmt->error . "</p>";
+        $conn->begin_transaction();
+        
+        try {
+            // Insert hospital with pending status
+            $hospital_query = "INSERT INTO hospital (name, email, phone, zone, district, city, website, status, created_at) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
+            
+            $stmt = $conn->prepare($hospital_query);
+            if (!$stmt) {
+                throw new Exception("Error preparing hospital query: " . $conn->error);
             }
-        } else {
-            echo "<p style='color:red;'>Hospital statement failed: " . $conn->error . "</p>";
+            
+            $stmt->bind_param("sssssss", 
+                $hospitalName, 
+                $email,
+                $phone,
+                $zone, 
+                $district, 
+                $city,
+                $website
+            );
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Error registering hospital: " . $stmt->error);
+            }
+            
+            $hospital_id = $conn->insert_id;
+            
+            // Insert hospital admin
+            $admin_query = "INSERT INTO hospitaladmin (name, email, phone, password, hospitalid, created_at) 
+                          VALUES (?, ?, ?, ?, ?, NOW())";
+            
+            $hashed_password = password_hash($adminPassword, PASSWORD_DEFAULT);
+            
+            $stmt = $conn->prepare($admin_query);
+            if (!$stmt) {
+                throw new Exception("Error preparing admin query: " . $conn->error);
+            }
+            
+            $stmt->bind_param("ssssi", 
+                $adminName, 
+                $adminEmail,
+                $adminPhone,
+                $hashed_password, 
+                $hospital_id
+            );
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Error registering hospital admin: " . $stmt->error);
+            }
+            
+            $conn->commit();
+            
+            // Send notification email to admin
+            $to = $adminEmail;
+            $subject = "Hospital Registration Pending Approval";
+            $message = "Dear $adminName,\n\n";
+            $message .= "Thank you for registering $hospitalName on MediHealth.\n";
+            $message .= "Your registration is pending approval from our administrators.\n";
+            $message .= "You will receive another email once your registration is approved.\n\n";
+            $message .= "Best regards,\nMediHealth Team";
+            $headers = "From: medihealth@example.com";
+            
+            mail($to, $subject, $message, $headers);
+            
+            $_SESSION['success'] = "Hospital registration submitted successfully. Please wait for admin approval.";
+            header("Location: hospitaladminlogin.php");
+            exit();
+            
+        } catch (Exception $e) {
+            $conn->rollback();
+            $errors[] = "Registration failed: " . $e->getMessage();
         }
     } else {
         foreach ($errors as $error) {

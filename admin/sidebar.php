@@ -67,7 +67,7 @@
             <ul class="sidebar-menu">
                 <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                 <li><a href="hospitals.php"><i class="fas fa-hospital"></i> Hospitals</a></li>
-                <li><a href="pending_hospitals.php"><i class="fas fa-clock"></i> Pending Hospitals</a></li>
+                <li><a href="pending_hospital.php"><i class="fas fa-clock"></i> Pending Hospitals</a></li>
                 <li><a href="doctors.php"><i class="fas fa-user-md"></i> Doctors</a></li>
                 <li><a href="patients.php"><i class="fas fa-users"></i> Patients</a></li>
                 <li><a href="profile.php"><i class="fas fa-user-cog"></i> Profile</a></li>

@@ -30,32 +30,45 @@ $error = '';
 //     }
 //     $error = 'Invalid User ID or Password';
 // }
-if($_SERVER['REQUEST_METHOD'] == 'POST'){
-    $adminid = $_POST['adminid'];
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $email = $_POST['email'];
     $password = $_POST['password'];
     
-    $sql = "SELECT * FROM hospitaladmin WHERE adminid=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $adminid);
+    $query = "SELECT ha.*, h.status as hospital_status 
+              FROM hospitaladmin ha 
+              JOIN hospital h ON ha.hospitalid = h.id 
+              WHERE ha.email = ?";
+    
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
-
-    if($result->num_rows > 0){
-        $row = $result->fetch_assoc();
-        if(password_verify($password, $row['password'])){
-            // Set the correct session variables that match what hospitaldash.php expects
-            $_SESSION['user_id'] = $row['adminid'];
-            $_SESSION['user_type'] = 'hospital_admin';
-            
-            header('Location: hospitaldash.php');
-            exit(); // Ensure script stops after redirect
-        }else{
-            $error = 'Password does not match';
+    
+    if ($result->num_rows == 1) {
+        $user = $result->fetch_assoc();
+        
+        if (password_verify($password, $user['password'])) {
+            // Check hospital status
+            if ($user['hospital_status'] === 'pending') {
+                $_SESSION['error'] = "Your hospital registration is pending approval. Please wait for admin approval.";
+            } elseif ($user['hospital_status'] === 'rejected') {
+                $_SESSION['error'] = "Your hospital registration has been rejected. Please contact support for more information.";
+            } elseif ($user['hospital_status'] === 'approved') {
+                // Set session variables
+                $_SESSION['user_id'] = $user['adminid'];
+                $_SESSION['user_type'] = 'hospital_admin';
+                $_SESSION['hospital_id'] = $user['hospitalid'];
+                
+                // Redirect to dashboard
+                header("Location: hospitaldash.php");
+                exit();
+            }
+        } else {
+            $_SESSION['error'] = "Invalid email or password";
         }
     } else {
-        $error = 'Admin ID not found';
+        $_SESSION['error'] = "Invalid email or password";
     }
-    $stmt->close();
 }
 ?>
 
@@ -253,10 +266,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
 
         <form method="POST" action="">
             <div class="form-group">
-                <label for="userid">Admin ID</label>
+                <label for="email">Email</label>
                 <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input type="number" id="adminid" name="adminid" class="form-control" required>
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" name="email" class="form-control" required>
                 </div>
             </div>
 

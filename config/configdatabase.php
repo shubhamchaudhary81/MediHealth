@@ -108,6 +108,7 @@ $hospitalTableSql = "CREATE TABLE IF NOT EXISTS hospital (
     district VARCHAR(50) NOT NULL,
     city VARCHAR(50) NOT NULL,
     website VARCHAR(150),
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 if ($conn->query($hospitalTableSql) === TRUE) {
