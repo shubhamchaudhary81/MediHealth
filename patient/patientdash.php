@@ -416,7 +416,7 @@ $doctors_result = $conn->query($doctors_query);
     background: transparent;
     border: 2px solid #3498db;
     color: #3498db;
-    padding: 0.85rem 1.8rem;
+    /* padding: 0.85rem 1.8rem;
     border-radius: 12px;
     text-decoration: none;
     transition: all 0.3s ease;
@@ -425,7 +425,7 @@ $doctors_result = $conn->query($doctors_query);
     align-items: center;
     gap: 0.7rem;
     font-size: 1.05rem;
-    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.1);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.1); */
 }
 
 .btn-outline:hover {

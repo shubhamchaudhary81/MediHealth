@@ -372,7 +372,81 @@ $(document).ready(function() {
         "Kathmandu": ["Kathmandu", "Kirtipur", "Tokha", "Budhanilkantha", "Gokarneshwar", "Chandragiri", "Tarakeshwar", "Dakshinkali", "Nagarkot", "Sankhu", "Koteshwor", "Boudha", "Patan", "Thamel", "New Baneshwor"],
         "Lalitpur": ["Patan", "Godawari", "Lubhu", "Imadol", "Harisiddhi", "Thaiba", "Chapagaun", "Bungamati", "Karyabinayak", "Jawalakhel", "Kupondole", "Pulchowk", "Kumaripati"],
         "Bhaktapur": ["Bhaktapur", "Thimi", "Suryabinayak", "Changunarayan", "Madhyapur Thimi", "Nagarkot", "Suryamati", "Nangkhel", "Duwakot"],
-        // ... rest of the cities data ...
+        "Bhojpur": ["Bhojpur", "Shadanand", "Hatuwagadhi", "Ramprasad Rai", "Aamchok", "Arun", "Pauwadungma", "Salpasilichho"],
+        "Dhankuta": ["Dhankuta", "Pakhribas", "Mahalaxmi", "Sangurigadhi", "Chaubise", "Shahidbhumi", "Chhathar Jorpati"],
+        "Ilam": ["Ilam", "Deumai", "Mai", "Suryodaya", "Sandakpur", "Mangsebung", "Rong", "Chulachuli"],
+        "Jhapa": ["Birtamod", "Damak", "Mechinagar", "Bhadrapur", "Kankai", "Gauradaha", "Arjundhara", "Shivasatakshi"],
+        "Khotang": ["Diktel", "Halesi Tuwachung", "Rupakot Majhuwagadhi", "Aiselukharka", "Jantedhunga", "Lamidanda", "Sakela"],
+        "Morang": ["Biratnagar", "Sundar Haraincha", "Belbari", "Pathari", "Rangeli", "Urlabari", "Letang", "Budhiganga"],
+        "Okhaldhunga": ["Siddhicharan", "Champadevi", "Sunkoshi", "Molung", "Likhu", "Chisankhugadhi", "Manebhanjyang"],
+        "Panchthar": ["Phidim", "Hilihang", "Tumbewa", "Miklajung", "Falelung", "Yangwarak", "Kummayak"],
+        "Sankhuwasabha": ["Khandbari", "Chainpur", "Madi", "Dharmadevi", "Makalu", "Silichong", "Sabhapokhari"],
+        "Solukhumbu": ["Salleri", "Necha Salyan", "Dudhkoshi", "Dudhkunda", "Khumbu Pasang Lhamu", "Likhupike", "Sotang"],
+        "Sunsari": ["Inaruwa", "Itahari", "Dharan", "Barahachhetra", "Duhabi", "Ramdhuni", "Koshi", "Harinagar"],
+        "Taplejung": ["Phungling", "Aathrai Tribeni", "Sidingwa", "Meringden", "Maiwakhola", "Mikwakhola", "Phaktanglung"],
+        "Terhathum": ["Myanglung", "Aathrai", "Phedap", "Laligurans", "Chhathar", "Menchayayem", "Jaljale"],
+        "Udayapur": ["Triyuga", "Katari", "Chaudandigadhi", "Udayapurgadhi", "Rautamai", "Tapli", "Limchungbung"],
+        "Bara": ["Kalaiya", "Jitpur Simara", "Kolhabi", "Nijgadh", "Mahagadhimai", "Pacharauta", "Pheta", "Simraungadh"],
+        "Dhanusha": ["Janakpur", "Dhanusadham", "Mithila", "Bateshwor", "Mukhiyapatti", "Lakshminiya", "Ganeshman Charnath"],
+        "Mahottari": ["Jaleshwor", "Bardibas", "Gaushala", "Manara", "Balwa", "Ramgopalpur", "Matihani"],
+        "Parsa": ["Birgunj", "Pokhariya", "Bahudaramai", "Jagarnathpur", "Pakahamainpur", "Sakhuwa Prasauni", "Thori"],
+        "Rautahat": ["Gaur", "Chandrapur", "Garuda", "Brindaban", "Gujara", "Ishnath", "Katahariya", "Madhav Narayan"],
+        "Saptari": ["Rajbiraj", "Hanumannagar", "Khadak", "Tirahut", "Bode Barsain", "Rupani", "Tilathi Koiladi"],
+        "Sarlahi": ["Malangwa", "Haripur", "Ishwarpur", "Kabilasi", "Lalbandi", "Dhankaul", "Chandranagar"],
+        "Siraha": ["Siraha", "Lahan", "Dhangadhi", "Mirchaiya", "Golbazar", "Bhagwanpur", "Karjanha", "Sukhipur"],
+        "Bhaktapur": ["Bhaktapur", "Thimi", "Suryabinayak", "Changunarayan", "Madhyapur Thimi", "Nagarkot", "Suryamati", "Nangkhel", "Duwakot"],
+        "Chitwan": ["Bharatpur", "Ratnanagar", "Kalika", "Khairahani", "Madi", "Rapti", "Ichchhakamana"],
+        "Dhading": ["Dhunibesi", "Nilkantha", "Khaniyabas", "Gajuri", "Galchhi", "Thakre", "Benighat Rorang"],
+        "Dolakha": ["Bhimeshwor", "Jiri", "Kalinchok", "Melung", "Bigu", "Gaurishankar", "Baiteshwor"],
+        "Kavrepalanchok": ["Dhulikhel", "Banepa", "Panauti", "Panchkhal", "Mandandeupur", "Namobuddha", "Temal"],
+        "Makwanpur": ["Hetauda", "Thaha", "Bhimphedi", "Manahari", "Raksirang", "Bakaiya", "Kailash"],
+        "Nuwakot": ["Bidur", "Kakani", "Tadi", "Likhu", "Meghang", "Panchakanya", "Suryagadhi"],
+        "Ramechhap": ["Manthali", "Ramechhap", "Umakunda", "Doramba", "Gokulganga", "Likhu Tamakoshi", "Sunapati"],
+        "Rasuwa": ["Dhunche", "Gosaikunda", "Kalika", "Naukunda", "Uttargaya"],
+        "Sindhuli": ["Kamalamai", "Dudhauli", "Golanjor", "Marin", "Sunkoshi", "Ghyanglekh", "Phikkal"],
+        "Sindhupalchok": ["Chautara", "Melamchi", "Bahrabise", "Jugal", "Lisankhu", "Helambu", "Bhotekoshi"],
+        "Baglung": ["Baglung", "Galkot", "Jaimuni", "Kathekhola", "Nisikhola", "Bareng", "Tara Khola"],
+        "Gorkha": ["Gorkha", "Palungtar", "Sulikot", "Ajirkot", "Arughat", "Chum Nubri", "Dharche"],
+        "Kaski": ["Pokhara", "Annapurna", "Machhapuchchhre", "Madi", "Rupa", "Lekhnath"],
+        "Lamjung": ["Besisahar", "Sundarbazar", "Rainas", "Dordi", "Dudhpokhari", "Kwholasothar"],
+        "Manang": ["Chame", "Narpa Bhumi", "Nashong", "Neshyang"],
+        "Mustang": ["Lo Manthang", "Lomanthang", "Thasang", "Gharapjhong", "Waragung Muktichhetra"],
+        "Myagdi": ["Beni", "Annapurna", "Dhaulagiri", "Mangala", "Malika", "Raghuganga"],
+        "Nawalpur": ["Kawasoti", "Devchuli", "Gaindakot", "Madhyabindu", "Baudikali"],
+        "Parbat": ["Kusma", "Phalebas", "Jaljala", "Mahashila", "Paiyun", "Modi"],
+        "Syangja": ["Putalibazar", "Waling", "Chapakot", "Galyang", "Arjun Chaupari", "Biruwa"],
+        "Tanahu": ["Damauli", "Byas", "Shuklagandaki", "Rhishing", "Devghat", "Bandipur"],
+        "Arghakhanchi": ["Sandhikharka", "Sitganga", "Bhumekasthan", "Chhatradev", "Panini"],
+        "Banke": ["Nepalgunj", "Kohalpur", "Rapti Sonari", "Narainapur", "Duduwa", "Janaki"],
+        "Bardiya": ["Gulariya", "Madhuwan", "Rajapur", "Bansgadhi", "Barbardiya", "Geruwa"],
+        "Dang": ["Ghorahi", "Tulsipur", "Lamahi", "Gadhawa", "Rapti", "Shantinagar"],
+        "Eastern Rukum": ["Rukumkot", "Bhume", "Putha Uttarganga", "Sisne"],
+        "Gulmi": ["Tamghas", "Resunga", "Musikot", "Chandrakot", "Gulmi Darbar", "Satyawati"],
+        "Kapilvastu": ["Kapilvastu", "Buddhabhumi", "Shivaraj", "Maharajgunj", "Krishnanagar", "Yashodhara"],
+        "Palpa": ["Tansen", "Rampur", "Rambha", "Nisdi", "Mathagadhi", "Bagnaskali"],
+        "Parasi": ["Ramgram", "Sunwal", "Pratappur", "Sarawal", "Palhi Nandan"],
+        "Pyuthan": ["Pyuthan", "Swargadwari", "Mandavi", "Naubahini", "Jhimruk", "Gaumukhi"],
+        "Rolpa": ["Liwang", "Runtigadhi", "Sunchhahari", "Triveni", "Thawang", "Madi"],
+        "Rupandehi": ["Butwal", "Siddharthanagar", "Lumbini Sanskritik", "Devdaha", "Sainamaina", "Tilottama"],
+        "Dailekh": ["Narayan", "Dullu", "Aathabis", "Bhagawatimai", "Dungeshwar", "Naumule"],
+        "Dolpa": ["Dunai", "Shey Phoksundo", "Jagadulla", "Kaike", "Mudkechula"],
+        "Humla": ["Simkot", "Namkha", "Kharpunath", "Sarkegad", "Chankheli", "Tajakot"],
+        "Jajarkot": ["Khalanga", "Bheri", "Nalgad", "Kushe", "Barekot", "Junichande"],
+        "Jumla": ["Chandannath", "Tila", "Guthichaur", "Hima", "Sinja", "Tatopani"],
+        "Kalikot": ["Manma", "Pachaljharana", "Sanni Triveni", "Naraharinath", "Shubha Kalika"],
+        "Mugu": ["Gamgadhi", "Soru", "Khatyad", "Mugum Karmarong"],
+        "Salyan": ["Khalanga", "Sharada", "Darma", "Kapurkot", "Tribeni", "Kalimati"],
+        "Surkhet": ["Birendranagar", "Bheriganga", "Gurbhakot", "Panchpuri", "Lekbeshi", "Barahatal"],
+        "Western Rukum": ["Musikot", "Chaurjahari", "Aathbiskot", "Banfikot"],
+        "Achham": ["Mangalsen", "Kamalbazar", "Sanfebagar", "Panchadewal Binayak", "Mellekh", "Ramaroshan"],
+        "Baitadi": ["Dasharathchand", "Patan", "Purchaudi", "Sigas", "Surnaya", "Shivanath"],
+        "Bajhang": ["Chainpur", "Jayaprithvi", "Bungal", "Talkot", "Surma", "Thalara"],
+        "Bajura": ["Martadi", "Budhiganga", "Gaumul", "Himali", "Pandav Gupha", "Swami Kartik"],
+        "Dadeldhura": ["Amargadhi", "Parashuram", "Aalital", "Ganyapadhura", "Nawadurga", "Ajaymeru"],
+        "Darchula": ["Darchula", "Shailyashikhar", "Marma", "Lekam", "Naugad", "Duhun"],
+        "Doti": ["Dipayal Silgadhi", "Shikhar", "Purbichauki", "Sayal", "Jorayal", "K.I. Singh"],
+        "Kailali": ["Dhangadhi", "Tikapur", "Lamki Chuha", "Godawari", "Gauriganga", "Bhajani"],
+        "Kanchanpur": ["Bhimdatta", "Krishnapur", "Belauri", "Punarbas", "Laljhadi", "Shuklaphanta"]
     };
 
     // Province change handler
@@ -613,9 +687,12 @@ $(document).ready(function() {
     }
 
     .container {
-        max-width: 1200px;
+        /* max-width: 1200px;
         margin: 0 auto;
-        padding: 20px;
+        padding: 20px; */
+          max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
     }
 
     .appointment {

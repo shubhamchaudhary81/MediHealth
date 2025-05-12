@@ -2,22 +2,32 @@
 session_start();
 include_once('../config/configdatabase.php');
 
-header('Content-Type: application/json');
+// Check if user is logged in
+if (!isset($_SESSION['patientID'])) {
+    echo json_encode(['success' => false, 'message' => 'Not authorized']);
+    exit();
+}
 
-if (!isset($_GET['hospital_id'])) {
+// Check if hospital_id is provided
+if (!isset($_GET['hospital_id']) || empty($_GET['hospital_id'])) {
     echo json_encode(['success' => false, 'message' => 'Hospital ID is required']);
     exit();
 }
 
-$hospital_id = intval($_GET['hospital_id']);
+$hospital_id = $_GET['hospital_id'];
 
-// Fetch doctors for the selected hospital
+// Prepare and execute query to get doctors for the selected hospital
 $query = "SELECT doctor_id, name, specialization 
           FROM doctor 
-          WHERE hospital_id = ? 
+          WHERE hospitalid = ? 
           ORDER BY name";
 
 $stmt = $conn->prepare($query);
+if ($stmt === false) {
+    echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
+    exit();
+}
+
 $stmt->bind_param("i", $hospital_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -31,6 +41,9 @@ while ($row = $result->fetch_assoc()) {
     ];
 }
 
+$stmt->close();
+
+// Return the doctors as JSON
 echo json_encode([
     'success' => true,
     'doctors' => $doctors

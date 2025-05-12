@@ -30,7 +30,7 @@
                         <li><a href="about.php">About Us</a></li>
                         <li><a href="blog.php">Blog</a></li>
                         <li><a href="contact.php">Contact</a></li>
-                        <li><a href="contact.php">Review</a></li>
+                        <li><a href="review.php">Review</a></li>
                         
                     </ul>
                 </nav>
