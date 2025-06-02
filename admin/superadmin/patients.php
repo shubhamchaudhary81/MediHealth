@@ -22,7 +22,7 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediHealth</title>
-    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -30,9 +30,15 @@ $conn->close();
             padding: 0;
             background-color: #f4f4f4;
         }
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
         .container {
-            width: 90%;
-            margin: 20px auto;
             background-color: #fff;
             padding: 20px;
             border-radius: 5px;
@@ -70,17 +76,11 @@ $conn->close();
             border-radius: 4px;
             margin-right: 5px;
         }
-        .btn-danger {
-            background-color: #f44336;
-        }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-        }
-        .back-btn {
-            background-color: #2196F3;
         }
         .patient-info {
             margin-top: 5px;
@@ -90,55 +90,56 @@ $conn->close();
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>All Patients</h1>
-            <div>
-                <a href="dashboard.php" class="btn back-btn">Back to Dashboard</a>
-                <a href="../logout.php" class="btn btn-danger">Logout</a>
+    <div class="dashboard-container">
+        <?php include 'sidebar.php'; ?>
+        <div class="main-content">
+            <div class="container">
+                <div class="header">
+                    <h1>All Patients</h1>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Gender</th>
+                            <th>Date of Birth</th>
+                            <th>Contact Number</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($patients_result && $patients_result->num_rows > 0): ?>
+                            <?php while ($patient = $patients_result->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($patient['gender']); ?></td>
+                                    <td><?php echo htmlspecialchars($patient['dob']); ?></td>
+                                    <td><?php echo htmlspecialchars($patient['number']); ?></td>
+                                    <td><?php echo htmlspecialchars($patient['email']); ?></td>
+                                    <td>
+                                        <?php 
+                                            echo htmlspecialchars($patient['province']) . ', ' .
+                                                 htmlspecialchars($patient['district']) . ', ' .
+                                                 htmlspecialchars($patient['city']);
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <a href="view_patient.php?id=<?php echo $patient['patientID']; ?>" class="btn">View</a>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="7" style="text-align: center;">No patients found.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Patient Name</th>
-                    <th>Gender</th>
-                    <th>Date of Birth</th>
-                    <th>Contact Number</th>
-                    <th>Email</th>
-                    <th>Address</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ($patients_result && $patients_result->num_rows > 0): ?>
-                    <?php while ($patient = $patients_result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']); ?></td>
-                            <td><?php echo htmlspecialchars($patient['gender']); ?></td>
-                            <td><?php echo htmlspecialchars($patient['dob']); ?></td>
-                            <td><?php echo htmlspecialchars($patient['number']); ?></td>
-                            <td><?php echo htmlspecialchars($patient['email']); ?></td>
-                            <td>
-                                <?php 
-                                    echo htmlspecialchars($patient['zone']) . ', ' .
-                                         htmlspecialchars($patient['district']) . ', ' .
-                                         htmlspecialchars($patient['city']);
-                                ?>
-                            </td>
-                            <td>
-                                <a href="view_patient.php?id=<?php echo $patient['patientID']; ?>" class="btn">View</a>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="7" style="text-align: center;">No patients found.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
     </div>
 </body>
 </html>

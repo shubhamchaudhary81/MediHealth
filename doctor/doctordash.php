@@ -41,11 +41,7 @@ $doctor = $result->fetch_assoc();
 $today = date('Y-m-d');
 
 // Get today's appointments
-$appointments_query = "SELECT a.*, p.first_name, p.last_name, p.number as phone, p.patientID
-                      FROM appointments a 
-                      LEFT JOIN patients p ON a.patient_id = p.patientID 
-                      WHERE a.doctor_id = ? AND a.appointment_date = ? AND a.status != 'completed'
-                      ORDER BY a.appointment_time";
+$appointments_query = "SELECT a.*, p.first_name, p.last_name, p.number as phone, p.patientID, op.name as other_name, op.phone as other_phone FROM appointments a LEFT JOIN patients p ON a.patient_id = p.patientID LEFT JOIN other_patients op ON a.other_patient_id = op.id WHERE a.doctor_id = ? AND a.appointment_date = ? AND a.status != 'completed' ORDER BY a.appointment_time";
 $stmt = $conn->prepare($appointments_query);
 if ($stmt === false) {
     die("Error preparing appointments query: " . $conn->error);
@@ -233,6 +229,13 @@ $patient_stats = $patient_result->fetch_assoc();
             color: white;
             font-weight: 600;
             position: relative;
+            overflow: hidden;
+        }
+
+        .profile-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .profile-image:hover .profile-overlay {
@@ -508,68 +511,79 @@ $patient_stats = $patient_result->fetch_assoc();
                 flex-wrap: wrap;
             }
         }
+
+        .profile-image-preview {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto 20px;
+            position: relative;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #4a90e2;
+            color: white;
+            font-size: 4rem;
+            font-weight: bold;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-        <aside class="sidebar">
-      <div class="sidebar-header">
-                <a href="#" class="logo">
-                    <i class="fas fa-heartbeat"></i>
-          <span>MediHealth</span>
-                </a>
-      </div>
-      
-      <nav class="sidebar-nav">
-        <ul>
-                    <li class="nav-item">
-                        <a href="doctordash.php" class="nav-link active">
-                            <i class="fas fa-home"></i>
-              <span>Dashboard</span>
-            </a>
-          </li>
-          <li class="nav-item">
-                        <a href="appointments.php" class="nav-link">
-                            <i class="fas fa-calendar-check"></i>
-              <span>Appointments</span>
-            </a>
-          </li>
-          <li class="nav-item">
-                        <a href="patients.php" class="nav-link">
-                            <i class="fas fa-users"></i>
-              <span>Patients</span>
-            </a>
-          </li>
-          <li class="nav-item">
-                        <a href="prescriptions.php" class="nav-link">
-                            <i class="fas fa-prescription"></i>
-                            <span>Prescriptions</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link">
-                            <i class="fas fa-file-medical"></i>
-              <span>Medical Records</span>
-            </a>
-          </li>
-          <li class="nav-item">
-                        <a href="#" class="nav-link">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </aside>
-    
-    <!-- Main Content -->
+    <div class="dashboard-container">
+        <?php include 'sidebar.php'; ?>
+        
         <main class="main-content">
             <!-- Header -->
             <header class="header">
                 <div class="welcome-section">
                     <div class="profile-image">
-                        <?php echo strtoupper(substr($doctor['name'], 0, 1)); ?>
+                        <?php if (!empty($doctor['profile_image'])): ?>
+                            <img src="../uploads/doctor_profiles/<?php echo htmlspecialchars($doctor['profile_image']); ?>" alt="Profile Image">
+                        <?php else: ?>
+                            <?php echo strtoupper(substr($doctor['name'], 0, 1)); ?>
+                        <?php endif; ?>
                         <div class="profile-overlay" onclick="showProfileModal()">
                             <i class="fas fa-camera"></i>
                         </div>
@@ -650,10 +664,22 @@ $patient_stats = $patient_result->fetch_assoc();
                       <p class="time"><?php echo date('h:i A', strtotime($appointment['appointment_time'])); ?></p>
                     </div>
                     <div class="appointment-details">
-                        <h4><?php echo htmlspecialchars($appointment['first_name'] . ' ' . $appointment['last_name']); ?></h4>
+                        <h4>
+                            <?php if ($appointment['appointment_for'] === 'others'): ?>
+                                <?php echo htmlspecialchars($appointment['other_name']); ?>
+                            <?php else: ?>
+                                <?php echo htmlspecialchars($appointment['first_name'] . ' ' . $appointment['last_name']); ?>
+                            <?php endif; ?>
+                        </h4>
                         <p><?php echo htmlspecialchars($appointment['reason']); ?></p>
-                                    <div class="patient-info">
-                                        <small>Phone: <?php echo htmlspecialchars($appointment['phone']); ?></small>
+                        <div class="patient-info">
+                            <small>Phone: 
+                                <?php if ($appointment['appointment_for'] === 'others'): ?>
+                                    <?php echo htmlspecialchars($appointment['other_phone']); ?>
+                                <?php else: ?>
+                                    <?php echo htmlspecialchars($appointment['phone']); ?>
+                                <?php endif; ?>
+                            </small>
                         </div>
                       </div>
                                 <div class="appointment-actions">
@@ -689,10 +715,36 @@ $patient_stats = $patient_result->fetch_assoc();
                 <h2>Update Profile</h2>
                 <button class="close" onclick="closeProfileModal()">&times;</button>
             </div>
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success">
+                    <?php 
+                    echo $_SESSION['success_message'];
+                    unset($_SESSION['success_message']);
+                    ?>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="alert alert-danger">
+                    <?php 
+                    echo $_SESSION['error_message'];
+                    unset($_SESSION['error_message']);
+                    ?>
+                </div>
+            <?php endif; ?>
             <form id="profileForm" method="POST" action="update_profile.php" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="profileImage">Profile Image</label>
-                    <input type="file" id="profileImage" name="profileImage" class="form-control" accept="image/*">
+                    <div class="profile-image-preview">
+                        <?php if (!empty($doctor['profile_image'])): ?>
+                            <img src="../uploads/doctor_profiles/<?php echo htmlspecialchars($doctor['profile_image']); ?>" alt="Profile Image" id="imagePreview">
+                        <?php else: ?>
+                            <div class="profile-image-placeholder" id="imagePreview">
+                                <?php echo strtoupper(substr($doctor['name'], 0, 1)); ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <input type="file" id="profileImage" name="profileImage" class="form-control" accept="image/*" onchange="previewImage(this)">
+                    <small>Max file size: 5MB. Allowed formats: JPG, PNG, GIF</small>
                 </div>
                 <div class="form-group">
                     <label for="name">Full Name</label>
@@ -701,29 +753,30 @@ $patient_stats = $patient_result->fetch_assoc();
                 <div class="form-group">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($doctor['email']); ?>" required>
-      </div>
-          <div class="form-group">
+                </div>
+                <div class="form-group">
                     <label for="phone">Phone</label>
                     <input type="tel" id="phone" name="phone" class="form-control" value="<?php echo htmlspecialchars($doctor['phone']); ?>" required>
-          </div>
-          <div class="form-group">
+                </div>
+                <div class="form-group">
                     <label for="specialization">Specialization</label>
                     <input type="text" id="specialization" name="specialization" class="form-control" value="<?php echo htmlspecialchars($doctor['specialization']); ?>" required>
-          </div>
-          <div class="form-group">
+                </div>
+                <div class="form-group">
                     <label for="current_password">Current Password</label>
                     <input type="password" id="current_password" name="current_password" class="form-control">
-          </div>
-          <div class="form-group">
+                    <small>Leave blank if you don't want to change password</small>
+                </div>
+                <div class="form-group">
                     <label for="new_password">New Password</label>
                     <input type="password" id="new_password" name="new_password" class="form-control">
-          </div>
+                </div>
                 <div class="form-group">
                     <label for="confirm_password">Confirm New Password</label>
                     <input type="password" id="confirm_password" name="confirm_password" class="form-control">
-          </div>
+                </div>
                 <button type="submit" class="btn btn-primary">Update Profile</button>
-        </form>
+            </form>
       </div>
     </div>
 
@@ -895,6 +948,28 @@ $patient_stats = $patient_result->fetch_assoc();
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = 'none';
             }
+    }
+
+    function previewImage(input) {
+        const preview = document.getElementById('imagePreview');
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (preview.tagName === 'IMG') {
+                    preview.src = e.target.result;
+                } else {
+                    // Replace placeholder with image
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    preview.parentNode.replaceChild(img, preview);
+                    img.id = 'imagePreview';
+                }
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
     }
   </script>
 </body>

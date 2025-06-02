@@ -169,6 +169,13 @@ $deptResult = $conn->query($deptQuery);
           ?>
               <div class="doctor-card">
                 <div class="doctor-info">
+                  <div class="doctor-avatar">
+                    <?php if (!empty($doctor['profile_image'])): ?>
+                        <img src="../uploads/doctor_profiles/<?php echo htmlspecialchars($doctor['profile_image']); ?>" alt="Doctor Profile">
+                    <?php else: ?>
+                        <?php echo strtoupper(substr($doctor['name'], 0, 1)); ?>
+                    <?php endif; ?>
+                  </div>
                   <h3><?php echo htmlspecialchars($doctor['name']); ?></h3>
                   <div class="doctor-tags">
                     <span class="specialty-tag"><?php echo htmlspecialchars($doctor['specialization']); ?></span>
@@ -193,8 +200,8 @@ $deptResult = $conn->query($deptQuery);
                     </div>
                   </div>
                   <div class="doctor-actions">
-                    <a href="?book_doctor=<?php echo $doctor['doctor_id']; ?>" class="btn-book">
-                      Book Appointment
+                    <a href="ourdoctors.php?book_doctor=<?php echo $doctor['doctor_id']; ?>" class="btn-book">
+                      <i class="fas fa-calendar-check"></i> Book Appointment
                     </a>
                   </div>
                 </div>
@@ -218,6 +225,32 @@ $deptResult = $conn->query($deptQuery);
   <?php include('../include/footer.php'); ?>
 
   <style>
+    .btn-outline {
+    background: transparent;
+    border: 2px solid #3498db;
+    color: #3498db;
+    /* padding: 0.85rem 1.8rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.1); */
+}
+
+.btn-outline:hover {
+    background: #3498db;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+}
+
+.btn-outline i {
+    font-size: 1.2rem;
+}
     /* Doctors Page Styles */
     .doctors-section {
       padding: 4rem 0;
@@ -461,6 +494,28 @@ $deptResult = $conn->query($deptQuery);
       background: #fee2e2;
       color: #ef4444;
       border: 1px solid #ef4444;
+    }
+
+    .doctor-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin: 0 auto 1rem;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(52,152,219,0.3);
+    }
+
+    .doctor-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
   </style>
 </body>

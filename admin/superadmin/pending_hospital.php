@@ -40,25 +40,25 @@ if (isset($_POST['action']) && isset($_POST['hospital_id'])) {
                 $message .= "Congratulations! Your hospital " . $admin_data['hospital_name'] . " has been successfully registered and approved on MediHealth.\n";
                 $message .= "You can now login to your hospital admin dashboard and manage your hospital profile.\n\n";
                 $message .= "Best regards,\nMediHealth Team";
-                $headers = "From: medihealth@example.com";
                 
-                mail($to, $subject, $message, $headers);
+                // Send email
+                mail($to, $subject, $message);
             }
-            $_SESSION['success'] = "Hospital successfully " . $action . "d!";
+            $_SESSION['success'] = "Hospital " . ($action === 'approve' ? 'approved' : 'rejected') . " successfully!";
         } else {
             $_SESSION['error'] = "Error updating hospital status";
         }
+        header("Location: pending_hospital.php");
+        exit();
     }
-    header("Location: pending_hospital.php");
-    exit();
 }
 
 // Fetch pending hospitals
 $query = "SELECT h.*, ha.name as admin_name, ha.email as admin_email 
           FROM hospital h 
           JOIN hospitaladmin ha ON h.id = ha.hospitalid 
-          WHERE h.status = 'pending' 
-          ORDER BY h.id DESC";
+          WHERE h.status = 'pending'
+          ORDER BY h.created_at DESC";
 $result = $conn->query($query);
 ?>
 
@@ -67,14 +67,22 @@ $result = $conn->query($query);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediHealth</title>
-    <link rel="stylesheet" href="../../css/style.css">
+    <title>Pending Hospitals - MediHealth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
+        }
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
         }
         .container {
             width: 90%;
@@ -148,79 +156,84 @@ $result = $conn->query($query);
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Pending Hospital Requests</h1>
-            <div>
-                <a href="dashboard.php" class="btn back-btn">Back to Dashboard</a>
-                <a href="../logout.php" class="btn btn-danger">Logout</a>
+    <div class="dashboard-container">
+        <?php include 'sidebar.php'; ?>
+        <div class="main-content">
+            <div class="container">
+                <div class="header">
+                    <h1>Pending Hospital Requests</h1>
+                    <div>
+                        <a href="dashboard.php" class="btn back-btn">Back to Dashboard</a>
+                        <a href="../logout.php" class="btn btn-danger">Logout</a>
+                    </div>
+                </div>
+
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="alert alert-success">
+                        <?php 
+                            echo $_SESSION['success'];
+                            unset($_SESSION['success']);
+                        ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger">
+                        <?php 
+                            echo $_SESSION['error'];
+                            unset($_SESSION['error']);
+                        ?>
+                    </div>
+                <?php endif; ?>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hospital Name</th>
+                            <th>Location</th>
+                            <th>Admin Name</th>
+                            <th>Admin Email</th>
+                            <th>Registration Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($result->num_rows > 0): ?>
+                            <?php while ($row = $result->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($row['name']); ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($row['city'] . ', ' . 
+                                                              $row['district'] . ', ' . 
+                                                              $row['zone']); ?>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($row['admin_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['admin_email']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
+                                    <td>
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="hospital_id" value="<?php echo $row['id']; ?>">
+                                            <button type="submit" name="action" value="approve" 
+                                                    class="btn">
+                                                Approve
+                                            </button>
+                                            <button type="submit" name="action" value="reject" 
+                                                    class="btn btn-danger">
+                                                Reject
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center;">No pending hospital requests</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success">
-                <?php 
-                    echo $_SESSION['success'];
-                    unset($_SESSION['success']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger">
-                <?php 
-                    echo $_SESSION['error'];
-                    unset($_SESSION['error']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Hospital Name</th>
-                    <th>Location</th>
-                    <th>Admin Name</th>
-                    <th>Admin Email</th>
-                    <th>Registration Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ($result->num_rows > 0): ?>
-                    <?php while ($row = $result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($row['name']); ?></td>
-                            <td>
-                                <?php echo htmlspecialchars($row['city'] . ', ' . 
-                                                         $row['district'] . ', ' . 
-                                                         $row['zone']); ?>
-                            </td>
-                            <td><?php echo htmlspecialchars($row['admin_name']); ?></td>
-                            <td><?php echo htmlspecialchars($row['admin_email']); ?></td>
-                            <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                            <td>
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="hospital_id" value="<?php echo $row['id']; ?>">
-                                    <button type="submit" name="action" value="approve" 
-                                            class="btn">
-                                        Approve
-                                    </button>
-                                    <button type="submit" name="action" value="reject" 
-                                            class="btn btn-danger">
-                                        Reject
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="6" style="text-align: center;">No pending hospital requests</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
     </div>
 </body>
 </html>

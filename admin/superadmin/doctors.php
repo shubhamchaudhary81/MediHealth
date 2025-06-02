@@ -27,7 +27,7 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediHealth</title>
-    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -35,9 +35,15 @@ $conn->close();
             padding: 0;
             background-color: #f4f4f4;
         }
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
         .container {
-            width: 90%;
-            margin: 20px auto;
             background-color: #fff;
             padding: 20px;
             border-radius: 5px;
@@ -76,17 +82,11 @@ $conn->close();
             border-radius: 4px;
             margin-right: 5px;
         }
-        .btn-danger {
-            background-color: #f44336;
-        }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-        }
-        .back-btn {
-            background-color: #2196F3;
         }
         .alert {
             padding: 15px;
@@ -99,51 +99,52 @@ $conn->close();
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>All Doctors</h1>
-            <div>
-                <a href="dashboard.php" class="btn back-btn">Back to Dashboard</a>
-                <a href="../logout.php" class="btn btn-danger">Logout</a>
+    <div class="dashboard-container">
+        <?php include 'sidebar.php'; ?>
+        <div class="main-content">
+            <div class="container">
+                <div class="header">
+                    <h1>All Doctors</h1>
+                </div>
+
+                <?php if (!$doctors_result): ?>
+                    <div class="alert">Error fetching doctors data. Please check the database connection and table structure.</div>
+                <?php endif; ?>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Doctor Name</th>
+                            <th>Specialization</th>
+                            <th>Qualification</th>
+                            <th>Contact</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($doctors_result && $doctors_result->num_rows > 0): ?>
+                            <?php while ($doctor = $doctors_result->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($doctor['name']); ?></td>
+                                    <td><?php echo htmlspecialchars($doctor['specialization']); ?></td>
+                                    <td><?php echo htmlspecialchars($doctor['qualification']); ?></td>
+                                    <td><?php echo htmlspecialchars($doctor['phone']); ?></td>
+                                    <td><?php echo htmlspecialchars($doctor['email']); ?></td>
+                                    <td>
+                                        <a href="view_doctor.php?id=<?php echo $doctor['doctor_id']; ?>" class="btn">View</a>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center;">No doctors found.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-
-        <?php if (!$doctors_result): ?>
-            <div class="alert">Error fetching doctors data. Please check the database connection and table structure.</div>
-        <?php endif; ?>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Doctor Name</th>
-                    <th>Specialization</th>
-                    <th>Qualification</th>
-                    <th>Contact</th>
-                    <th>Email</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ($doctors_result && $doctors_result->num_rows > 0): ?>
-                    <?php while ($doctor = $doctors_result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($doctor['name']); ?></td>
-                            <td><?php echo htmlspecialchars($doctor['specialization']); ?></td>
-                            <td><?php echo htmlspecialchars($doctor['qualification']); ?></td>
-                            <td><?php echo htmlspecialchars($doctor['phone']); ?></td>
-                            <td><?php echo htmlspecialchars($doctor['email']); ?></td>
-                            <td>
-                                <a href="view_doctor.php?id=<?php echo $doctor['doctor_id']; ?>" class="btn">View</a>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="6" style="text-align: center;">No doctors found.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
     </div>
 </body>
 </html>

@@ -58,7 +58,7 @@ $result = $stmt->get_result();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediHealth</title>
-    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -66,9 +66,15 @@ $result = $stmt->get_result();
             padding: 0;
             background-color: #f4f4f4;
         }
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
         .container {
-            width: 90%;
-            margin: 20px auto;
             background-color: #fff;
             padding: 20px;
             border-radius: 5px;
@@ -115,9 +121,6 @@ $result = $stmt->get_result();
             align-items: center;
             margin-bottom: 20px;
         }
-        .back-btn {
-            background-color: #2196F3;
-        }
         .search-box {
             margin-bottom: 20px;
         }
@@ -153,87 +156,88 @@ $result = $stmt->get_result();
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Approved Hospitals</h1>
-            <div>
-                <a href="dashboard.php" class="btn back-btn">Back to Dashboard</a>
-                <a href="../logout.php" class="btn btn-danger">Logout</a>
-            </div>
-        </div>
+    <div class="dashboard-container">
+        <?php include 'sidebar.php'; ?>
+        <div class="main-content">
+            <div class="container">
+                <div class="header">
+                    <h1>Approved Hospitals</h1>
+                </div>
 
-        <div class="search-box">
-            <form method="GET" action="">
-                <input type="text" name="search" class="search-input" 
-                       placeholder="Search hospitals..." 
-                       value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
-                <button type="submit" class="search-btn">Search</button>
-            </form>
-        </div>
+                <div class="search-box">
+                    <form method="GET" action="">
+                        <input type="text" name="search" class="search-input" 
+                               placeholder="Search hospitals..." 
+                               value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
+                        <button type="submit" class="search-btn">Search</button>
+                    </form>
+                </div>
 
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success">
-                <?php 
-                    echo $_SESSION['success'];
-                    unset($_SESSION['success']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger">
-                <?php 
-                    echo $_SESSION['error'];
-                    unset($_SESSION['error']);
-                ?>
-            </div>
-        <?php endif; ?>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Hospital Name</th>
-                    <th>Location</th>
-                    <th>Contact</th>
-                    <th>Admin Name</th>
-                    <th>Admin Email</th>
-                    <th>Registration Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ($result->num_rows > 0): ?>
-                    <?php while ($row = $result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($row['name']); ?></td>
-                            <td>
-                                <?php echo htmlspecialchars($row['city'] . ', ' . 
-                                                         $row['district'] . ', ' . 
-                                                         $row['zone']); ?>
-                            </td>
-                            <td><?php echo htmlspecialchars($row['phone']); ?></td>
-                            <td><?php echo htmlspecialchars($row['admin_name']); ?></td>
-                            <td><?php echo htmlspecialchars($row['admin_email']); ?></td>
-                            <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                            <td>
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="hospital_id" value="<?php echo $row['id']; ?>">
-                                    <button type="submit" name="action" value="remove" 
-                                            class="btn btn-danger"
-                                            onclick="return confirm('Are you sure you want to remove this hospital?')">
-                                        Remove
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="7" style="text-align: center;">No approved hospitals found</td>
-                    </tr>
+                <?php if (isset($_SESSION['success'])): ?>
+                    <div class="alert alert-success">
+                        <?php 
+                            echo $_SESSION['success'];
+                            unset($_SESSION['success']);
+                        ?>
+                    </div>
                 <?php endif; ?>
-            </tbody>
-        </table>
+
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger">
+                        <?php 
+                            echo $_SESSION['error'];
+                            unset($_SESSION['error']);
+                        ?>
+                    </div>
+                <?php endif; ?>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hospital Name</th>
+                            <th>Location</th>
+                            <th>Contact</th>
+                            <th>Admin Name</th>
+                            <th>Admin Email</th>
+                            <th>Registration Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($result->num_rows > 0): ?>
+                            <?php while ($row = $result->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($row['name']); ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($row['city'] . ', ' . 
+                                                                 $row['district'] . ', ' . 
+                                                                 $row['zone']); ?>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($row['phone']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['admin_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['admin_email']); ?></td>
+                                    <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
+                                    <td>
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="hospital_id" value="<?php echo $row['id']; ?>">
+                                            <button type="submit" name="action" value="remove" 
+                                                    class="btn btn-danger"
+                                                    onclick="return confirm('Are you sure you want to remove this hospital?')">
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="7" style="text-align: center;">No approved hospitals found</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </body>
 </html> 

@@ -81,7 +81,7 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediHealth</title>
-    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -89,10 +89,16 @@ $conn->close();
             padding: 0;
             background-color: #f4f4f4;
         }
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
         .container {
-            width: 90%;
             max-width: 800px;
-            margin: 20px auto;
             background-color: #fff;
             padding: 20px;
             border-radius: 5px;
@@ -130,17 +136,11 @@ $conn->close();
             border: none;
             cursor: pointer;
         }
-        .btn-danger {
-            background-color: #f44336;
-        }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-        }
-        .back-btn {
-            background-color: #2196F3;
         }
         .alert {
             padding: 15px;
@@ -165,58 +165,62 @@ $conn->close();
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Superadmin Profile</h1>
-            <div>
-                <a href="dashboard.php" class="btn back-btn">Back to Dashboard</a>
-                <a href="../logout.php" class="btn btn-danger">Logout</a>
+    <div class="dashboard-container">
+        <?php include 'sidebar.php'; ?>
+        <div class="main-content">
+            <div class="container">
+                <div class="header">
+                    <h1>Superadmin Profile</h1>
+                </div>
+                
+                <?php if (!empty($success_message)): ?>
+                    <div class="alert alert-success"><?php echo $success_message; ?></div>
+                <?php endif; ?>
+                
+                <?php if (!empty($error_message)): ?>
+                    <div class="alert alert-danger"><?php echo $error_message; ?></div>
+                <?php endif; ?>
+                
+                <form method="POST" action="">
+                    <div class="form-group">
+                        <label for="superadmin_id">Superadmin ID</label>
+                        <input type="text" id="superadmin_id" value="<?php echo htmlspecialchars($superadmin['super_id']); ?>" disabled>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($superadmin['super_name']); ?>" required>
+                    </div>
+                    
+                    <!-- <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($superadmin['email']); ?>" required>
+                    </div> -->
+                    
+                    <div class="password-section">
+                        <h3>Change Password</h3>
+                        <p>Leave these fields blank if you don't want to change your password.</p>
+                        
+                        <div class="form-group">
+                            <label for="current_password">Current Password</label>
+                            <input type="password" id="current_password" name="current_password">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="new_password">New Password</label>
+                            <input type="password" id="new_password" name="new_password">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirm_password">Confirm New Password</label>
+                            <input type="password" id="confirm_password" name="confirm_password">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn">Update Profile</button>
+                </form>
             </div>
         </div>
-        
-        <?php if (!empty($success_message)): ?>
-            <div class="alert alert-success"><?php echo $success_message; ?></div>
-        <?php endif; ?>
-        
-        <?php if (!empty($error_message)): ?>
-            <div class="alert alert-danger"><?php echo $error_message; ?></div>
-        <?php endif; ?>
-        
-        <form method="POST" action="">
-            <div class="form-group">
-                <label for="superadmin_id">Superadmin ID</label>
-                <input type="text" id="superadmin_id" value="<?php echo htmlspecialchars($superadmin['super_id']); ?>" disabled>
-            </div>
-            
-            <div class="form-group">
-                <label for="name">Name</label>
-                <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($superadmin['super_name']); ?>" required>
-            </div>
-            
-         
-            
-            <div class="password-section">
-                <h3>Change Password</h3>
-                <p>Leave these fields blank if you don't want to change your password.</p>
-                
-                <div class="form-group">
-                    <label for="current_password">Current Password</label>
-                    <input type="password" id="current_password" name="current_password">
-                </div>
-                
-                <div class="form-group">
-                    <label for="new_password">New Password</label>
-                    <input type="password" id="new_password" name="new_password">
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirm_password">Confirm New Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password">
-                </div>
-            </div>
-            
-            <button type="submit" class="btn">Update Profile</button>
-        </form>
     </div>
 </body>
 </html> 

@@ -25,11 +25,13 @@ $appointments_query = "SELECT a.*,
     h.name as hospital_name,
     d.department_name,
     doc.name as doctor_name,
-    doc.specialization
+    doc.specialization,
+    op.name as other_name, op.age as other_age, op.gender as other_gender, op.blood_group as other_blood_group, op.relation as other_relation, op.address as other_address, op.email as other_email, op.phone as other_phone
     FROM appointments a
     JOIN hospital h ON a.hospital_id = h.id
     JOIN department d ON a.department_id = d.department_id
     JOIN doctor doc ON a.doctor_id = doc.doctor_id
+    LEFT JOIN other_patients op ON a.other_patient_id = op.id
     WHERE a.patient_id = ?
     ORDER BY a.appointment_date DESC, a.appointment_time DESC";
 $stmt = $conn->prepare($appointments_query);
@@ -123,6 +125,19 @@ $conn->close();
                                 </span>
                             </div>
                             <div class="appointment-details">
+                                <?php if ($appointment['appointment_for'] === 'others'): ?>
+                                    <p><strong>Patient Name:</strong> <?php echo htmlspecialchars($appointment['other_name']); ?></p>
+                                    <p><strong>Age:</strong> <?php echo htmlspecialchars($appointment['other_age']); ?></p>
+                                    <p><strong>Gender:</strong> <?php echo htmlspecialchars($appointment['other_gender']); ?></p>
+                                    <p><strong>Blood Group:</strong> <?php echo htmlspecialchars($appointment['other_blood_group']); ?></p>
+                                    <p><strong>Relation:</strong> <?php echo htmlspecialchars($appointment['other_relation']); ?></p>
+                                    <p><strong>Address:</strong> <?php echo htmlspecialchars($appointment['other_address']); ?></p>
+                                    <p><strong>Email:</strong> <?php echo htmlspecialchars($appointment['other_email']); ?></p>
+                                    <p><strong>Phone:</strong> <?php echo htmlspecialchars($appointment['other_phone']); ?></p>
+                                <?php else: ?>
+                                    <p><strong>Patient Name:</strong> <?php echo htmlspecialchars($patient_data['name']); ?></p>
+                                    <!-- You can add more registered patient info here if needed -->
+                                <?php endif; ?>
                                 <p><strong>Doctor:</strong> <?php echo htmlspecialchars($appointment['doctor_name']); ?></p>
                                 <p><strong>Department:</strong> <?php echo htmlspecialchars($appointment['department_name']); ?></p>
                                 <p><strong>Date:</strong> <?php echo date('F j, Y', strtotime($appointment['appointment_date'])); ?></p>

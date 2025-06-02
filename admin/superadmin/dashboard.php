@@ -22,7 +22,6 @@ $hospital_result = $conn->query($hospital_count_query);
 if ($hospital_result) {
     $hospital_count = $hospital_result->fetch_assoc()['count'];
 } else {
-    // Log error or handle it appropriately
     error_log("Error in hospital count query: " . $conn->error);
 }
 
@@ -53,16 +52,61 @@ if ($patient_result) {
     error_log("Error in patient count query: " . $conn->error);
 }
 
-// Appointment count
-// $appointment_count_query = "SELECT COUNT(*) as count FROM appointments";
-// $appointment_result = $conn->query($appointment_count_query);
-// if ($appointment_result) {
-//     $appointment_count = $appointment_result->fetch_assoc()['count'];
-// } else {
-//     error_log("Error in appointment count query: " . $conn->error);
-// }
+// Get recent activities
+$activity_query = "(
+    SELECT 
+        'hospital' as type,
+        h.name as name,
+        h.created_at as date,
+        h.status as status,
+        ha.name as admin_name,
+        NULL as specialization
+    FROM hospital h
+    JOIN hospitaladmin ha ON h.id = ha.hospitalid
+    WHERE h.status = 'pending'
+    ORDER BY h.created_at DESC
+    LIMIT 5
+)
+UNION ALL
+(
+    SELECT 
+        'doctor' as type,
+        d.name as name,
+        d.created_at as date,
+        'added' as status,
+        h.name as admin_name,
+        d.specialization
+    FROM doctor d
+    JOIN hospital h ON d.hospitalid = h.id
+    ORDER BY d.created_at DESC
+    LIMIT 5
+)
+ORDER BY date DESC
+LIMIT 5";
 
-$conn->close();
+$activity_result = $conn->query($activity_query);
+
+// Function to get time ago
+function time_elapsed_string($datetime) {
+    $now = new DateTime;
+    $ago = new DateTime($datetime);
+    $diff = $now->diff($ago);
+
+    if ($diff->d > 7) {
+        return date('M d, Y', strtotime($datetime));
+    }
+    
+    if ($diff->d > 0) {
+        return $diff->d . ' day' . ($diff->d > 1 ? 's' : '') . ' ago';
+    }
+    if ($diff->h > 0) {
+        return $diff->h . ' hour' . ($diff->h > 1 ? 's' : '') . ' ago';
+    }
+    if ($diff->i > 0) {
+        return $diff->i . ' minute' . ($diff->i > 1 ? 's' : '') . ' ago';
+    }
+    return 'Just now';
+}
 ?>
 
 <!DOCTYPE html>
@@ -70,57 +114,18 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediHealth</title>
-    <!-- <link rel="stylesheet" href="../../css/style.css"> -->
+    <title>Superadmin Dashboard - MediHealth</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
-            background-color: #f8f9fa;
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f4f4f4;
         }
         .dashboard-container {
             display: flex;
             min-height: 100vh;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: rgb(74, 144, 226);
-            color: white;
-            padding: 20px 0;
-        }
-        .sidebar-header {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-        }
-        .sidebar-header h2 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 20px 0;
-        }
-        .sidebar-menu li {
-            margin-bottom: 5px;
-        }
-        .sidebar-menu a {
-            display: block;
-            padding: 12px 20px;
-            color: white;
-            text-decoration: none;
-            transition: background-color 0.3s;
-        }
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .sidebar-menu i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
         }
         .main-content {
             flex: 1;
@@ -130,11 +135,7 @@ $conn->close();
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            background-color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
         .header h1 {
             margin: 0;
@@ -143,27 +144,18 @@ $conn->close();
         .user-info {
             display: flex;
             align-items: center;
-        }
-        .user-info span {
-            margin-right: 15px;
-            color: #666;
+            gap: 20px;
         }
         .logout-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
+            color: #dc3545;
             text-decoration: none;
-            font-size: 0.9rem;
-        }
-        .logout-btn:hover {
-            background-color: #c82333;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         .dashboard-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -235,47 +227,53 @@ $conn->close();
         .activity-item {
             padding: 15px 0;
             border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
         .activity-item:last-child {
             border-bottom: none;
         }
         .activity-icon {
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 10px;
             color: white;
+            flex-shrink: 0;
+        }
+        .activity-content {
+            flex: 1;
         }
         .activity-text {
-            color: #666;
+            color: #333;
+            margin-bottom: 5px;
         }
         .activity-time {
-            color: #999;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .activity-status {
+            padding: 4px 8px;
+            border-radius: 12px;
             font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-added {
+            background-color: #d4edda;
+            color: #155724;
         }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h2><i class="fas fa-hospital"></i> MediHealth</h2>
-                <p>Superadmin Panel</p>
-            </div>
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                <li><a href="hospitals.php"><i class="fas fa-hospital"></i> Hospitals</a></li>
-                <li><a href="pending_hospital.php"><i class="fas fa-clock"></i> Pending Hospitals</a></li>
-                <li><a href="doctors.php"><i class="fas fa-user-md"></i> Doctors</a></li>
-                <li><a href="patients.php"><i class="fas fa-users"></i> Patients</a></li>
-                <li><a href="profile.php"><i class="fas fa-user-cog"></i> Profile</a></li>
-                <li><a href="../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-            </ul>
-        </div>
-        
+        <?php include 'sidebar.php'; ?>
         <div class="main-content">
             <div class="header">
                 <h1>Dashboard</h1>
@@ -289,14 +287,14 @@ $conn->close();
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Total Hospitals</h3>
-                        <div class="card-icon" style="background-color: #4CAF50;">
+                        <div class="card-icon" style="background-color: #4a90e2;">
                             <i class="fas fa-hospital"></i>
                         </div>
                     </div>
                     <p class="card-value"><?php echo $hospital_count; ?></p>
-                    <a href="hospitals.php" class="card-link">View all hospitals <i class="fas fa-arrow-right"></i></a>
+                    <a href="hospitals.php" class="card-link">View all hospitals →</a>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Pending Hospitals</h3>
@@ -305,81 +303,74 @@ $conn->close();
                         </div>
                     </div>
                     <p class="card-value"><?php echo $pending_count; ?></p>
-                    <a href="pending_hospital.php" class="card-link">Review pending hospitals <i class="fas fa-arrow-right"></i></a>
+                    <a href="pending_hospital.php" class="card-link">View pending hospitals →</a>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Total Doctors</h3>
-                        <div class="card-icon" style="background-color: #17a2b8;">
+                        <div class="card-icon" style="background-color: #28a745;">
                             <i class="fas fa-user-md"></i>
                         </div>
                     </div>
                     <p class="card-value"><?php echo $doctor_count; ?></p>
-                    <a href="doctors.php" class="card-link">View all doctors <i class="fas fa-arrow-right"></i></a>
+                    <a href="doctors.php" class="card-link">View all doctors →</a>
                 </div>
-                
+
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Total Patients</h3>
-                        <div class="card-icon" style="background-color: #6f42c1;">
+                        <div class="card-icon" style="background-color: #17a2b8;">
                             <i class="fas fa-users"></i>
                         </div>
                     </div>
                     <p class="card-value"><?php echo $patient_count; ?></p>
-                    <a href="patients.php" class="card-link">View all patients <i class="fas fa-arrow-right"></i></a>
+                    <a href="patients.php" class="card-link">View all patients →</a>
                 </div>
-                
-                <!-- <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Total Appointments</h3>
-                        <div class="card-icon" style="background-color: #fd7e14;">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                    </div>
-                    <p class="card-value"><?php echo $appointment_count; ?></p>
-                    <a href="appointments.php" class="card-link">View all appointments <i class="fas fa-arrow-right"></i></a>
-                </div> -->
             </div>
             
             <div class="recent-activity">
                 <h2>Recent Activity</h2>
                 <ul class="activity-list">
-                    <li class="activity-item">
-                        <div class="activity-icon" style="background-color: #4CAF50;">
-                            <i class="fas fa-hospital"></i>
-                        </div>
-                        <span class="activity-text">New hospital registration: City Hospital</span>
-                        <span class="activity-time">2 hours ago</span>
-                    </li>
-                    <li class="activity-item">
-                        <div class="activity-icon" style="background-color: #17a2b8;">
-                            <i class="fas fa-user-md"></i>
-                        </div>
-                        <span class="activity-text">New doctor added: Dr. John Smith</span>
-                        <span class="activity-time">5 hours ago</span>
-                    </li>
-                    <li class="activity-item">
-                        <div class="activity-icon" style="background-color: #6f42c1;">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <span class="activity-text">New patient registration: Jane Doe</span>
-                        <span class="activity-time">1 day ago</span>
-                    </li>
-                    <li class="activity-item">
-                        <div class="activity-icon" style="background-color: #fd7e14;">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <span class="activity-text">New appointment booked: Cardiology</span>
-                        <span class="activity-time">2 days ago</span>
-                    </li>
+                    <?php if ($activity_result && $activity_result->num_rows > 0): ?>
+                        <?php while ($activity = $activity_result->fetch_assoc()): ?>
+                            <li class="activity-item">
+                                <div class="activity-icon" style="background-color: <?php echo $activity['type'] === 'hospital' ? '#4a90e2' : '#28a745'; ?>">
+                                    <i class="fas <?php echo $activity['type'] === 'hospital' ? 'fa-hospital' : 'fa-user-md'; ?>"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-text">
+                                        <?php if ($activity['type'] === 'hospital'): ?>
+                                            New hospital registration: <?php echo htmlspecialchars($activity['name']); ?>
+                                        <?php else: ?>
+                                            New doctor added: Dr. <?php echo htmlspecialchars($activity['name']); ?> 
+                                            (<?php echo htmlspecialchars($activity['specialization']); ?>)
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="activity-time">
+                                        <?php echo time_elapsed_string($activity['date']); ?>
+                                        <?php if ($activity['type'] === 'hospital'): ?>
+                                            <span class="activity-status status-pending">Pending</span>
+                                        <?php else: ?>
+                                            <span class="activity-status status-added">Added</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </li>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <li class="activity-item">
+                            <div class="activity-icon" style="background-color: #6c757d;">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-text">No recent activities</div>
+                            </div>
+                        </li>
+                    <?php endif; ?>
                 </ul>
             </div>
         </div>
     </div>
-    
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- <script src="../../js/script.js"></script> -->
-    
 </body>
 </html> 

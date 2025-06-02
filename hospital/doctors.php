@@ -312,11 +312,11 @@ if ($admin_result->num_rows > 0) {
                                 </div>
                             </div>
                             <div class="doctor-actions">
-                                <a href="view-doctor-profile.php?doctor_id=<?php echo htmlspecialchars($doctor['doctor_id']); ?>" class="action-btn view-profile">
+                                <a href="view-doctor-profile.php?doctor_id=<?php echo urlencode($doctor['doctor_id']); ?>" class="action-btn view-profile">
                                     <i class="fas fa-user-md"></i>
                                     View Profile
                                 </a>
-                                <a href="view-doctor-schedule.php?doctor_id=<?php echo htmlspecialchars($doctor['doctor_id']); ?>" class="action-btn schedule">
+                                <a href="edit-doctor-schedule-new.php?doctor_id=<?php echo urlencode($doctor['doctor_id']); ?>" class="action-btn schedule">
                                     <i class="fas fa-calendar-alt"></i>
                                     Schedule
                                 </a>

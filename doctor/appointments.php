@@ -21,16 +21,27 @@ $doctor = $result->fetch_assoc();
 
 // Get all appointments with date filter
 $date_filter = isset($_GET['date_filter']) ? $_GET['date_filter'] : date('Y-m-d');
-$appointments_query = "SELECT a.*, p.first_name, p.last_name, p.number as phone, p.patientID
+$appointments_query = "SELECT a.*, p.first_name, p.last_name, p.number as phone, p.patientID, 
+                      op.name as other_name, op.phone as other_phone,
+                      (SELECT COUNT(*) FROM appointment_attachments WHERE appointment_id = a.appointment_id) as attachment_count
                       FROM appointments a 
                       LEFT JOIN patients p ON a.patient_id = p.patientID 
-                      WHERE a.doctor_id = ? 
-                      AND a.appointment_date = ?
+                      LEFT JOIN other_patients op ON a.other_patient_id = op.id 
+                      WHERE a.doctor_id = ? AND a.appointment_date = ? 
                       ORDER BY a.appointment_time DESC";
 $stmt = $conn->prepare($appointments_query);
 $stmt->bind_param("ss", $doctor_id, $date_filter);
 $stmt->execute();
 $appointments = $stmt->get_result();
+
+// Function to get appointment attachments
+function getAppointmentAttachments($conn, $appointment_id) {
+    $query = "SELECT * FROM appointment_attachments WHERE appointment_id = ? ORDER BY created_at DESC";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $appointment_id);
+    $stmt->execute();
+    return $stmt->get_result();
+}
 ?>
 
 <!DOCTYPE html>
@@ -398,58 +409,8 @@ $appointments = $stmt->get_result();
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <a href="doctordash.php" class="logo">
-                    <i class="fas fa-heartbeat"></i>
-                    <span>MediHealth</span>
-                </a>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <ul>
-                    <li class="nav-item">
-                        <a href="doctordash.php" class="nav-link">
-                            <i class="fas fa-home"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="appointments.php" class="nav-link active">
-                            <i class="fas fa-calendar-check"></i>
-                            <span>Appointments</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="patients.php" class="nav-link">
-                            <i class="fas fa-users"></i>
-                            <span>Patients</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="prescriptions.php" class="nav-link">
-                            <i class="fas fa-prescription"></i>
-                            <span>Prescriptions</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="medical_records.php" class="nav-link">
-                            <i class="fas fa-file-medical"></i>
-                            <span>Medical Records</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="settings.php" class="nav-link">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
+        <?php include 'sidebar.php'; ?>
+        
         <main class="main-content">
             <!-- Header -->
             <header class="header">
@@ -502,8 +463,20 @@ $appointments = $stmt->get_result();
                                     <tr>
                                         <td><?php echo date('d M Y', strtotime($appointment['appointment_date'])); ?></td>
                                         <td><?php echo date('h:i A', strtotime($appointment['appointment_time'])); ?></td>
-                                        <td><?php echo htmlspecialchars($appointment['first_name'] . ' ' . $appointment['last_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($appointment['phone']); ?></td>
+                                        <td>
+                                            <?php if ($appointment['appointment_for'] === 'others'): ?>
+                                                <?php echo htmlspecialchars($appointment['other_name']); ?>
+                                            <?php else: ?>
+                                                <?php echo htmlspecialchars($appointment['first_name'] . ' ' . $appointment['last_name']); ?>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($appointment['appointment_for'] === 'others'): ?>
+                                                <?php echo htmlspecialchars($appointment['other_phone']); ?>
+                                            <?php else: ?>
+                                                <?php echo htmlspecialchars($appointment['phone']); ?>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?php echo htmlspecialchars($appointment['reason']); ?></td>
                                         <td>
                                             <span class="appointment-status status-<?php echo strtolower($appointment['status']); ?>">
@@ -524,6 +497,12 @@ $appointments = $stmt->get_result();
                                                     <i class="fas fa-prescription"></i>
                                                     <span>Prescription</span>
                                                 </a>
+                                                <?php if ($appointment['attachment_count'] > 0): ?>
+                                                    <button class="btn btn-info btn-sm" onclick="viewAttachments(<?php echo $appointment['appointment_id']; ?>)">
+                                                        <i class="fas fa-paperclip"></i>
+                                                        <span>Records (<?php echo $appointment['attachment_count']; ?>)</span>
+                                                    </button>
+                                                <?php endif; ?>
                                                 <button class="btn btn-danger btn-sm" onclick="cancelAppointment(<?php echo $appointment['appointment_id']; ?>)">
                                                     <i class="fas fa-times"></i>
                                                     <span>Cancel</span>
@@ -557,6 +536,19 @@ $appointments = $stmt->get_result();
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Add this at the end of the file, before </body> -->
+    <div id="attachmentsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Medical Records</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="attachmentsList"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -640,6 +632,64 @@ $appointments = $stmt->get_result();
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 event.target.style.display = 'none';
+            }
+        }
+
+        function viewAttachments(appointmentId) {
+            const modal = document.getElementById('attachmentsModal');
+            const attachmentsList = document.getElementById('attachmentsList');
+            
+            // Show loading state
+            attachmentsList.innerHTML = '<div class="loading">Loading attachments...</div>';
+            modal.style.display = 'block';
+            
+            // Fetch attachments
+            fetch(`get_attachments.php?appointment_id=${appointmentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let html = '';
+                        if (data.attachments.length > 0) {
+                            data.attachments.forEach(attachment => {
+                                html += `
+                                    <div class="attachment-item">
+                                        <div class="attachment-info">
+                                            <i class="fas ${attachment.file_type === 'prescription' ? 'fa-prescription' : 'fa-file-medical'}"></i>
+                                            <span>${attachment.file_name}</span>
+                                        </div>
+                                        <div class="attachment-actions">
+                                            <a href="${attachment.file_path}" target="_blank" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                            <a href="${attachment.file_path}" download class="btn btn-secondary btn-sm">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        } else {
+                            html = '<p class="no-attachments">No medical records attached.</p>';
+                        }
+                        attachmentsList.innerHTML = html;
+                    } else {
+                        attachmentsList.innerHTML = '<p class="error">Error loading attachments.</p>';
+                    }
+                })
+                .catch(error => {
+                    attachmentsList.innerHTML = '<p class="error">Error loading attachments.</p>';
+                });
+        }
+
+        // Close modal when clicking the X or outside the modal
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('attachmentsModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('attachmentsModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
             }
         }
     </script>

@@ -152,24 +152,34 @@ if ($conn->query($hospitalAdminTableSql) === TRUE) {
 
 // Create 'doctor' table
 $doctorTableSql = "CREATE TABLE IF NOT EXISTS doctor (
-            doctor_id VARCHAR(20) PRIMARY KEY,
-            hospitalid INT(11) NOT NULL,
-            department_id INT(11) NOT NULL,
-            name VARCHAR(100) NOT NULL,
-            email VARCHAR(100) NOT NULL,
-            phone VARCHAR(20) NOT NULL,
-            specialization VARCHAR(100) NOT NULL,
-            qualification VARCHAR(255) NOT NULL,
-            experience INT(11) NOT NULL,
-            password VARCHAR(255) NOT NULL,
-            schedule TEXT NOT NULL,
-            status ENUM('active', 'inactive') DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (hospitalid) REFERENCES hospital(id) ON DELETE CASCADE,
-            FOREIGN KEY (department_id) REFERENCES department(department_id) ON DELETE CASCADE
+    doctor_id VARCHAR(20) PRIMARY KEY,
+    hospitalid INT(11) NOT NULL,
+    department_id INT(11) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    phone VARCHAR(20) NOT NULL,
+    nmc_number VARCHAR(20) NOT NULL
+    specialization VARCHAR(100) NOT NULL,
+    qualification VARCHAR(255) NOT NULL,
+    experience INT(11) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    schedule TEXT,
+    profile_image VARCHAR(255),
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (hospitalid) REFERENCES hospital(id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES department(department_id) ON DELETE CASCADE
 )";
+
+// Add profile_image column if it doesn't exist
+$alterDoctorTable = "ALTER TABLE doctor 
+    ADD COLUMN IF NOT EXISTS nmc_number VARCHAR(20) NOT NULL  AFTER phone";
+    
+
 if ($conn->query($doctorTableSql) === TRUE) {
     // echo "Table 'doctor' created successfully<br>";
+    // Add profile_image column if table already exists
+    $conn->query($alterDoctorTable);
 } else {
     // echo "Error creating 'doctor' table: " . $conn->error . "<br>";
 }
@@ -223,6 +233,7 @@ if ($conn->query($appointmentsTableSql) === TRUE) {
 $create_superadmin_table = "CREATE TABLE IF NOT EXISTS superadmin (
     super_id VARCHAR(50) PRIMARY KEY,
     super_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
@@ -235,8 +246,8 @@ if ($conn->query($create_superadmin_table) === TRUE) {
     if ($result->num_rows == 0) {
         // Insert default superadmin (password: admin123)
         $hashed_password = password_hash('admin123', PASSWORD_DEFAULT);
-        $insert_superadmin = "INSERT INTO superadmin (super_id, super_name, password) 
-                             VALUES ('SA001', 'Super Admin', '$hashed_password')";
+        $insert_superadmin = "INSERT INTO superadmin (super_id, super_name, email, password) 
+                             VALUES ('SA001', 'Super Admin', 'admin@medihealth.com', '$hashed_password')";
         
         if ($conn->query($insert_superadmin) === TRUE) {
             // Default superadmin created successfully
@@ -287,6 +298,28 @@ if ($conn->query($sql) === TRUE) {
     // echo "Table booked_slots created successfully";
 } else {
     echo "Error creating table: " . $conn->error;
+}
+
+// Create appointment_attachments table
+$create_appointment_attachments = "CREATE TABLE IF NOT EXISTS appointment_attachments (
+    attachment_id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    appointment_id INT(11) NOT NULL,
+    patient_id INT(11) NOT NULL,
+    doctor_id VARCHAR(20) NOT NULL,
+    file_type ENUM('prescription', 'report') NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id) ON DELETE CASCADE,
+    FOREIGN KEY (patient_id) REFERENCES patients(patientID) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctor(doctor_id) ON DELETE CASCADE
+)";
+
+if ($conn->query($create_appointment_attachments) === TRUE) {
+    // echo "Table 'appointment_attachments' created successfully<br>";
+} else {
+    echo "Error creating appointment_attachments table: " . $conn->error . "<br>";
 }
 
 // $conn->close();

@@ -59,11 +59,13 @@ $query = "SELECT a.*, p.first_name, p.last_name, p.dob, p.gender, p.bloodgroup,
                  h.name as hospital_name, h.zone, h.district, h.city, h.phone as hospital_phone, 
                  h.email as hospital_email, h.website as hospital_website,
                  d.name as doctor_name, d.specialization, d.qualification, d.email as doctor_email, 
-                 d.phone as doctor_phone
+                 d.phone as doctor_phone,
+                 op.name as other_name, op.age as other_age, op.gender as other_gender, op.blood_group as other_blood_group
           FROM appointments a 
           JOIN patients p ON a.patient_id = p.patientID 
           JOIN hospital h ON a.hospital_id = h.id
           JOIN doctor d ON CAST(a.doctor_id AS CHAR) = d.doctor_id
+          LEFT JOIN other_patients op ON a.other_patient_id = op.id
           WHERE a.appointment_id = ? AND CAST(a.doctor_id AS CHAR) = ?";
 
 $stmt = $conn->prepare($query);
@@ -340,11 +342,18 @@ $hospital_address = $data['city'] . ', ' . $data['district'] . ', ' . $data['zon
     <div class="section">
       <h3>Patient Details</h3>
                 <div class="editable-box">
-                    Name: <?php echo htmlspecialchars($data['first_name'] . ' ' . $data['last_name']); ?><br>
-                    Age: <?php echo $age; ?> years<br>
-                    Gender: <?php echo htmlspecialchars($data['gender']); ?><br>
-                    Blood Group: <?php echo htmlspecialchars($data['bloodgroup']); ?><br>
-                    Date: <?php echo date('d/m/Y'); ?>
+<?php if ($data['appointment_for'] === 'others'): ?>
+    Name: <?php echo htmlspecialchars($data['other_name']); ?><br>
+    Age: <?php echo htmlspecialchars($data['other_age']); ?> years<br>
+    Gender: <?php echo htmlspecialchars($data['other_gender']); ?><br>
+    Blood Group: <?php echo htmlspecialchars($data['other_blood_group']); ?><br>
+<?php else: ?>
+    Name: <?php echo htmlspecialchars($data['first_name'] . ' ' . $data['last_name']); ?><br>
+    Age: <?php echo $age; ?> years<br>
+    Gender: <?php echo htmlspecialchars($data['gender']); ?><br>
+    Blood Group: <?php echo htmlspecialchars($data['bloodgroup']); ?><br>
+<?php endif; ?>
+    Date: <?php echo date('d/m/Y'); ?>
       </div>
     </div>
 

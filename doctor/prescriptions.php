@@ -321,58 +321,8 @@ $prescriptions = $stmt->get_result();
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <a href="doctordash.php" class="logo">
-                    <i class="fas fa-heartbeat"></i>
-                    <span>MediHealth</span>
-                </a>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <ul>
-                    <li class="nav-item">
-                        <a href="doctordash.php" class="nav-link">
-                            <i class="fas fa-home"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="appointments.php" class="nav-link">
-                            <i class="fas fa-calendar-check"></i>
-                            <span>Appointments</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="patients.php" class="nav-link">
-                            <i class="fas fa-users"></i>
-                            <span>Patients</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="prescriptions.php" class="nav-link active">
-                            <i class="fas fa-prescription"></i>
-                            <span>Prescriptions</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="medical_records.php" class="nav-link">
-                            <i class="fas fa-file-medical"></i>
-                            <span>Medical Records</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="settings.php" class="nav-link">
-                            <i class="fas fa-cog"></i>
-                            <span>Settings</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
+        <?php include 'sidebar.php'; ?>
+        
         <main class="main-content">
             <!-- Header -->
             <header class="header">

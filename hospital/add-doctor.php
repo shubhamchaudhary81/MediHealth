@@ -53,6 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $name = $_POST['name'];
     $email = $_POST['email'];
     $phone = $_POST['phone'];
+    $nmc_number = $_POST['nmc_number'];
     $department_id = $_POST['department'];
     $specialization = $_POST['specialization'];
     $qualification = $_POST['qualification'];
@@ -103,11 +104,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     try {
         // Insert doctor into database
-        $insert_query = "INSERT INTO doctor (doctor_id, hospitalid, department_id, name, email, phone, specialization, qualification, experience, password, schedule, is_specialist) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $insert_query = "INSERT INTO doctor (doctor_id, hospitalid, department_id, name, email, phone, nmc_number, specialization, qualification, experience, password, schedule, is_specialist) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $conn->prepare($insert_query);
-        $stmt->bind_param("siisssssissi", $doctor_id, $hospital_id, $department_id, $name, $email, $phone, $specialization, $qualification, $experience, $hashed_password, $schedule, $is_specialist);
+        $stmt->bind_param("siisssssssssi", $doctor_id, $hospital_id, $department_id, $name,  $email, $phone, $nmc_number, $specialization, $qualification, $experience, $hashed_password, $schedule, $is_specialist);
 
         if ($stmt->execute()) {
             // Insert schedule into doctor_schedule table
@@ -150,12 +151,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 $mail->Body = "
                     <div style='text-align: center; font-family: Arial, sans-serif;'>
-                        <h2 style='color: #28a745;'>Welcome, Dr. $name!</h2>
+                        <h2 style='color: #4f6df5;'>Welcome, Dr. $name!</h2>
                         <p style='font-size: 16px; color: #555;'>We are pleased to have you join our MediHealth family.</p>
 
                         <div style='background-color: #f2f2f2; padding: 15px; border-radius: 10px; display: inline-block; margin-top:20px;'>
-                            <p><strong>Doctor ID:</strong> <span style='color: #28a745;'>$doctor_id</span></p>
-                            <p><strong>Password:</strong> <span style='color: #28a745;'>$password</span></p>
+                            <p><strong>Doctor ID:</strong> <span style='color: #4f6df5;'>$doctor_id</span></p>
+                            <p><strong>Password:</strong> <span style='color: #4f6df5;'>$password</span></p>
                             <div style='margin-top: 10px;'>
                                 <p><strong>Your Schedule:</strong></p>
                                 $schedule_html
@@ -412,24 +413,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <form method="POST" action="">
                 <div class="form-row">
-                <div class="form-group">
+                    <div class="form-group">
                         <label for="name">Full Name</label>
                         <input type="text" id="name" name="name" class="form-control" required>
-                </div>
+                    </div>
 
-                <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" class="form-control" required>
+                    <div class="form-group">
+                        <label for="nmc_number">NMC Number</label>
+                        <input type="number" id="nmc_number" name="nmc_number" class="form-control" required>
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="phone">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" class="form-control" required>
-                </div>
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-control" required>
+                    </div>
 
-                <div class="form-group">
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="number" id="phone" name="phone" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
                         <label for="department">Department</label>
                         <select id="department" name="department" class="form-control" required>
                             <option value="">Select Department</option>
@@ -443,12 +451,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
 
                 <div class="form-row">
-                <div class="form-group">
+                    <div class="form-group">
                         <label for="specialization">Specialization</label>
                         <input type="text" id="specialization" name="specialization" class="form-control" required>
-                </div>
+                    </div>
 
-                <div class="form-group">
+                    <div class="form-group">
                         <label for="qualification">Qualification</label>
                         <input type="text" id="qualification" name="qualification" class="form-control" required>
                     </div>

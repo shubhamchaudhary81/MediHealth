@@ -1,5 +1,5 @@
 <?php
-// session_start();
+session_start();
 include_once('../include/header.php');
 include_once('../config/configdatabase.php');
 
@@ -50,7 +50,7 @@ $hospitals_result = $conn->query($hospitals_query);
 
 // Fetch doctors with their departments
 $doctors_query = "SELECT d.doctor_id, d.name, d.specialization, d.experience, 
-                 dep.department_name, h.name as hospital_name 
+                 dep.department_name, h.name as hospital_name, d.profile_image 
                  FROM doctor d 
                  JOIN department dep ON d.department_id = dep.department_id 
                  JOIN hospital h ON d.hospitalid = h.id 
@@ -65,6 +65,7 @@ $doctors_result = $conn->query($doctors_query);
  
 
   <main>
+    <div id="notification-area" style="margin: 10px auto; max-width: 800px; padding: 0 20px;"></div>
     <!-- Greeting Section -->
     <div class="greeting-container container">
         <div class="greeting-content">
@@ -79,6 +80,9 @@ $doctors_result = $conn->query($doctors_query);
         <div class="profile-link">
             <a href="patientprofile.php" class="btn btn-outline">
                 <i class="fa-solid fa-user"></i> My Profile
+            </a>
+            <a href="patient_history.php" class="btn btn-outline">
+                <i class="fa-solid fa-file-medical"></i> Medical History
             </a>
         </div>
     </div>
@@ -252,7 +256,13 @@ $doctors_result = $conn->query($doctors_query);
               <?php while ($doctor = $doctors_result->fetch_assoc()): ?>
                 <div class="doctor-card">
                   <div class="doctor-image">
-                    <img src="../assets/doctor-placeholder.jpg" alt="<?php echo htmlspecialchars($doctor['name']); ?>">
+                    <?php if (!empty($doctor['profile_image'])): ?>
+                        <img src="../uploads/doctor_profiles/<?php echo htmlspecialchars($doctor['profile_image']); ?>" alt="<?php echo htmlspecialchars($doctor['name']); ?>">
+                    <?php else: ?>
+                        <div class="doctor-avatar">
+                            <?php echo strtoupper(substr($doctor['name'], 0, 1)); ?>
+                        </div>
+                    <?php endif; ?>
                   </div>
                   <div class="doctor-info">
                     <h3><?php echo htmlspecialchars($doctor['name']); ?></h3>
@@ -271,7 +281,7 @@ $doctors_result = $conn->query($doctors_query);
                       </div>
                     </div>
                     <a href="bookappointment.php?doctor_id=<?php echo $doctor['doctor_id']; ?>" class="btn-doctor">
-                      Book Appointment
+                      <i class="fas fa-calendar-check"></i> Book Appointment
                     </a>
                   </div>
                 </div>
@@ -728,15 +738,30 @@ $doctors_result = $conn->query($doctors_query);
 }
 
 .doctor-image {
-  width: 100%;
-  height: 200px;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
   overflow: hidden;
+  box-shadow: 0 4px 15px rgba(52,152,219,0.3);
 }
 
 .doctor-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.doctor-avatar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 2.5rem;
+  font-weight: bold;
 }
 
 .doctor-info {
@@ -852,6 +877,260 @@ $doctors_result = $conn->query($doctors_query);
     grid-template-columns: 1fr;
   }
 }
+
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.greeting-section {
+    background: linear-gradient(135deg, #3498db, #2c3e50);
+    color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.greeting-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.greeting-text h1 {
+    font-size: 2rem;
+    margin: 0;
+    margin-bottom: 0.5rem;
+}
+
+.greeting-text p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.profile-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.profile-link {
+    padding: 0.8rem 1.5rem;
+    background: rgba(255,255,255,0.1);
+    border-radius: 5px;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.profile-link:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+}
+
+.hero-section {
+    background: #f8f9fa;
+    padding: 3rem 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.hero-content h2 {
+    font-size: 2.5rem;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.hero-content p {
+    font-size: 1.1rem;
+    color: #666;
+    max-width: 800px;
+    margin: 0 auto 2rem;
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.cta-button {
+    padding: 1rem 2rem;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.cta-primary {
+    background: #3498db;
+    color: white;
+}
+
+.cta-primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.cta-secondary {
+    background: white;
+    color: #2c3e50;
+    border: 2px solid #3498db;
+}
+
+.cta-secondary:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+.featured-section {
+    margin-bottom: 3rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-header h2 {
+    font-size: 1.8rem;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.view-all {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.view-all:hover {
+    color: #2980b9;
+}
+
+.featured-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+.featured-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.featured-card:hover {
+    transform: translateY(-5px);
+}
+
+.card-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.card-content {
+    padding: 1.5rem;
+}
+
+.card-content h3 {
+    margin: 0 0 0.5rem;
+    color: #2c3e50;
+}
+
+.card-content p {
+    color: #666;
+    margin: 0 0 1rem;
+}
+
+.card-link {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-link:hover {
+    color: #2980b9;
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+
+    .greeting-section {
+        padding: 1.5rem;
+    }
+
+    .greeting-text h1 {
+        font-size: 1.5rem;
+    }
+
+    .hero-section {
+        padding: 2rem 1rem;
+    }
+
+    .hero-content h2 {
+        font-size: 2rem;
+    }
+
+    .hero-content p {
+        font-size: 1rem;
+    }
+
+    .section-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .featured-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .greeting-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .profile-links {
+        width: 100%;
+    }
+
+    .profile-link {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .hero-content h2 {
+        font-size: 1.8rem;
+    }
+
+    .cta-button {
+        width: 100%;
+        text-align: center;
+    }
+}
 </style>
 
 <script>
@@ -871,4 +1150,20 @@ $doctors_result = $conn->query($doctors_query);
     const offset = currentSlide * -100;
     doctorsSlider.style.transform = `translateX(${offset}%)`;
   }
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const bookingSuccess = urlParams.get('booking_success');
+        const notificationArea = document.getElementById('notification-area');
+
+        if (bookingSuccess === '1') {
+            // Display success message
+            notificationArea.innerHTML = '<div class="alert alert-success">Appointment booked successfully!</div>';
+            // Optional: Remove the parameter from URL after displaying
+             history.replaceState({}, document.title, "patientdash.php");
+        }
+        // You could add similar logic for error parameters if needed
+    });
 </script>

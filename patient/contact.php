@@ -137,6 +137,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php include('../include/footer.php'); ?>
 
   <style>
+
+    .btn-outline {
+    background: transparent;
+    border: 2px solid #3498db;
+    color: #3498db;
+    /* padding: 0.85rem 1.8rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 1.05rem;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.1); */
+}
+
+.btn-outline:hover {
+    background: #3498db;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+}
+
+.btn-outline i {
+    font-size: 1.2rem;
+}
     /* Contact Page Styles */
     .contact-section {
       padding: 4rem 0;

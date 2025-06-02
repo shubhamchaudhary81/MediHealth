@@ -54,13 +54,7 @@ $first_day = date('Y-m-01', strtotime($selected_date));
 $last_day = date('Y-m-t', strtotime($selected_date));
 
 // Fetch appointments for the selected date
-$appointments_query = "SELECT a.*, p.first_name as patient_name, d.name as doctor_name, d.specialization 
-                      FROM appointments a 
-                      INNER JOIN patients p ON a.patient_id = p.patientID 
-                      INNER JOIN doctor d ON a.doctor_id = d.doctor_id 
-                      WHERE a.hospital_id = ? 
-                      AND a.appointment_date = ?
-                      ORDER BY a.appointment_time ASC";
+$appointments_query = "SELECT a.*, p.first_name as patient_name, d.name as doctor_name, d.specialization, op.name as other_name FROM appointments a INNER JOIN patients p ON a.patient_id = p.patientID INNER JOIN doctor d ON a.doctor_id = d.doctor_id LEFT JOIN other_patients op ON a.other_patient_id = op.id WHERE a.hospital_id = ? AND a.appointment_date = ? ORDER BY a.appointment_time ASC";
 
 if (!($stmt = $conn->prepare($appointments_query))) {
     die("Error preparing appointments query: " . $conn->error);
@@ -355,7 +349,13 @@ include('sidebar.php');
                                 <p>45 mins</p>
                             </div>
                             <div class="appointment-info">
-                                <h3><?php echo htmlspecialchars($appointment['patient_name']); ?></h3>
+                                <h3>
+                                    <?php if ($appointment['appointment_for'] === 'others'): ?>
+                                        <?php echo htmlspecialchars($appointment['other_name']); ?>
+                                    <?php else: ?>
+                                        <?php echo htmlspecialchars($appointment['patient_name']); ?>
+                                    <?php endif; ?>
+                                </h3>
                                 <p><?php echo htmlspecialchars($appointment['reason']); ?> with Dr. <?php echo htmlspecialchars($appointment['doctor_name']); ?></p>
                             </div>
                             <span class="appointment-status status-<?php echo strtolower($appointment['status']); ?>">

@@ -49,7 +49,7 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediHealth</title>
-    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -57,9 +57,15 @@ $conn->close();
             padding: 0;
             background-color: #f4f4f4;
         }
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
         .container {
-            width: 90%;
-            margin: 20px auto;
             background-color: #fff;
             padding: 20px;
             border-radius: 5px;
@@ -104,17 +110,11 @@ $conn->close();
         .btn-reject {
             background-color: #f44336;
         }
-        .btn-danger {
-            background-color: #f44336;
-        }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
-        }
-        .back-btn {
-            background-color: #2196F3;
         }
         .alert {
             padding: 15px;
@@ -139,59 +139,60 @@ $conn->close();
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Pending Hospital Registrations</h1>
-            <div>
-                <a href="dashboard.php" class="btn back-btn">Back to Dashboard</a>
-                <a href="../logout.php" class="btn btn-danger">Logout</a>
+    <div class="dashboard-container">
+        <?php include 'sidebar.php'; ?>
+        <div class="main-content">
+            <div class="container">
+                <div class="header">
+                    <h1>Pending Hospital Registrations</h1>
+                </div>
+                
+                <?php if (isset($success_message)): ?>
+                    <div class="alert alert-success"><?php echo $success_message; ?></div>
+                <?php endif; ?>
+                
+                <?php if (isset($error_message)): ?>
+                    <div class="alert alert-danger"><?php echo $error_message; ?></div>
+                <?php endif; ?>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hospital Name</th>
+                            <th>Address</th>
+                            <th>Contact</th>
+                            <th>Email</th>
+                            <th>Registration Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($pending_hospitals_result && $pending_hospitals_result->num_rows > 0): ?>
+                            <?php while ($hospital = $pending_hospitals_result->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($hospital['hospital_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($hospital['address']); ?></td>
+                                    <td><?php echo htmlspecialchars($hospital['contact']); ?></td>
+                                    <td><?php echo htmlspecialchars($hospital['email']); ?></td>
+                                    <td><?php echo htmlspecialchars($hospital['registration_date']); ?></td>
+                                    <td>
+                                        <form method="POST" style="display: inline;">
+                                            <input type="hidden" name="hospital_id" value="<?php echo $hospital['hospital_id']; ?>">
+                                            <button type="submit" name="approve" class="btn btn-approve">Approve</button>
+                                            <button type="submit" name="reject" class="btn btn-reject">Reject</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" style="text-align: center;">No pending hospital registrations found.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
-        
-        <?php if (isset($success_message)): ?>
-            <div class="alert alert-success"><?php echo $success_message; ?></div>
-        <?php endif; ?>
-        
-        <?php if (isset($error_message)): ?>
-            <div class="alert alert-danger"><?php echo $error_message; ?></div>
-        <?php endif; ?>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Hospital Name</th>
-                    <th>Address</th>
-                    <th>Contact</th>
-                    <th>Email</th>
-                    <th>Registration Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ($pending_hospitals_result && $pending_hospitals_result->num_rows > 0): ?>
-                    <?php while ($hospital = $pending_hospitals_result->fetch_assoc()): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($hospital['hospital_name']); ?></td>
-                            <td><?php echo htmlspecialchars($hospital['address']); ?></td>
-                            <td><?php echo htmlspecialchars($hospital['contact']); ?></td>
-                            <td><?php echo htmlspecialchars($hospital['email']); ?></td>
-                            <td><?php echo htmlspecialchars($hospital['registration_date']); ?></td>
-                            <td>
-                                <form method="POST" style="display: inline;">
-                                    <input type="hidden" name="hospital_id" value="<?php echo $hospital['hospital_id']; ?>">
-                                    <button type="submit" name="approve" class="btn btn-approve">Approve</button>
-                                    <button type="submit" name="reject" class="btn btn-reject">Reject</button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="6" style="text-align: center;">No pending hospital registrations found.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
     </div>
 </body>
 </html> 

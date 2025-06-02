@@ -16,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] == 'POST') {
     $email = trim($_POST['email']);
     $dob = trim($_POST['dob']);
     $number = trim($_POST['number']);
-    $zone = trim($_POST['zone']);
+    $province = trim($_POST['province']);
     $district = trim($_POST['district']);
     $city = trim($_POST['city']);
     $password = trim($_POST['password']);
@@ -124,8 +124,8 @@ if ($_SERVER["REQUEST_METHOD"] == 'POST') {
 
 
     // Address Validation
-    if (empty($zone) || empty($district) || empty($city)) {
-        $errors['zone'] = "Zone is required.";
+    if (empty($province) || empty($district) || empty($city)) {
+        $errors['province'] = "province is required.";
         $errors['district'] = "district is required.";
         $errors['city'] = "city is required.";
     }
@@ -153,7 +153,7 @@ if (empty($errors)) {
 
   // Prepare statement
   $stmt = $conn->prepare("INSERT INTO patients 
-      (patientid, first_name, last_name, email, dob, number, zone, district, city, password, gender, bloodgroup, created_at) 
+      (patientid, first_name, last_name, email, dob, number, province, district, city, password, gender, bloodgroup, created_at) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
 
   if ($stmt === false) {
@@ -161,7 +161,7 @@ if (empty($errors)) {
   }
 
   // Bind parameters
-  $stmt->bind_param("ssssssssssss", $patientid, $firstName, $lastName, $email, $dob, $number, $zone, $district, $city, $hashed_password, $gender, $bloodgroup);
+  $stmt->bind_param("ssssssssssss", $patientid, $firstName, $lastName, $email, $dob, $number, $province, $district, $city, $hashed_password, $gender, $bloodgroup);
 
   // Execute statement
   if ($stmt->execute()) {
@@ -246,6 +246,7 @@ $conn->close();
   <title>MediPoint - Patient Registration</title>
   <!-- <link rel="stylesheet" href="../css/patientregister.css"> -->
   <link rel="stylesheet" href="../css/register.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
    
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-icons@latest/dist/umd/lucide.min.js"> -->
@@ -630,7 +631,7 @@ $conn->close();
 
             <div class="form-check">
               <input type="checkbox" id="terms" required>
-              <label for="terms">I agree to the <a href="MediHealth_Terms_And_Condition(1).pdf" target="_blank">Terms of Service</a> and <a href="MediHealth_Privacy_Policy(1).pdf" target="_blank">Privacy Policy</a></label>
+              <label for="terms">I agree to the <a href="termsandcondition.php" target="_blank">Terms of Service</a> and <a href="privacy_policy.php" target="_blank">Privacy Policy</a></label>
             </div>
 
             <button type="submit" class="btn btn-primary btn-full">Create Account</button>
@@ -665,7 +666,6 @@ $conn->close();
       button.addEventListener('click', function() {
         const passwordInput = this.parentElement.querySelector('input');
         const icon = this.querySelector('i');
-        
         if (passwordInput.type === 'password') {
           passwordInput.type = 'text';
           icon.setAttribute('data-lucide', 'eye-off');
@@ -673,14 +673,13 @@ $conn->close();
           passwordInput.type = 'password';
           icon.setAttribute('data-lucide', 'eye');
         }
-        
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
       });
     });
 
-    // Province, District, and City Selection
+    // Province, District, and City logic (copied from hospitalregister.php)
     const districtsByProvince = {
-      "Province 1": ["Bhojpur", "Dhankuta", "Ilam", "Jhapa", "Khotang", "Morang", "Okhaldhunga", "Panchthar", "Sankhuwasabha", "Solukhumbu", "Sunsari", "Taplejung", "Terhathum", "Udayapur"],
+      "Koshi": ["Bhojpur", "Dhankuta", "Ilam", "Jhapa", "Khotang", "Morang", "Okhaldhunga", "Panchthar", "Sankhuwasabha", "Solukhumbu", "Sunsari", "Taplejung", "Terhathum", "Udayapur"],
       "Madhesh": ["Bara", "Dhanusha", "Mahottari", "Parsa", "Rautahat", "Saptari", "Sarlahi", "Siraha"],
       "Bagmati": ["Bhaktapur", "Chitwan", "Dhading", "Dolakha", "Kathmandu", "Kavrepalanchok", "Lalitpur", "Makwanpur", "Nuwakot", "Ramechhap", "Rasuwa", "Sindhuli", "Sindhupalchok"],
       "Gandaki": ["Baglung", "Gorkha", "Kaski", "Lamjung", "Manang", "Mustang", "Myagdi", "Nawalpur", "Parbat", "Syangja", "Tanahu"],
@@ -716,69 +715,35 @@ $conn->close();
       "Kanchanpur": ["Mahendranagar", "Bhimdatta", "Punarbas", "Bedkot", "Shuklaphanta", "Belauri", "Krishnapur"]
     };
 
-    // Function to update district options
-    function updateDistricts() {
-      const provinceSelect = document.getElementById('province');
+    document.getElementById('province').addEventListener('change', function() {
       const districtSelect = document.getElementById('district');
       const citySelect = document.getElementById('city');
-      
-      if (!provinceSelect || !districtSelect || !citySelect) {
-        console.error('Required select elements not found');
-        return;
-      }
-
-      // Clear previous options
       districtSelect.innerHTML = '<option value="">Select District</option>';
       citySelect.innerHTML = '<option value="">Select City</option>';
-      
-      const selectedProvince = provinceSelect.value;
-      
-      if (selectedProvince && districtsByProvince[selectedProvince]) {
-        districtsByProvince[selectedProvince].forEach(district => {
-          const option = document.createElement('option');
+      const selectedProvince = this.value;
+      // Map Province 1 to Koshi for compatibility
+      let provinceKey = selectedProvince === 'Province 1' ? 'Koshi' : selectedProvince;
+      if (provinceKey && districtsByProvince[provinceKey]) {
+        districtsByProvince[provinceKey].forEach(district => {
+          let option = document.createElement('option');
           option.value = district;
           option.textContent = district;
           districtSelect.appendChild(option);
         });
       }
-    }
+    });
 
-    // Function to update city options
-    function updateCities() {
-      const districtSelect = document.getElementById('district');
+    document.getElementById('district').addEventListener('change', function() {
       const citySelect = document.getElementById('city');
-      
-      if (!districtSelect || !citySelect) {
-        console.error('Required select elements not found');
-        return;
-      }
-
-      // Clear previous options
       citySelect.innerHTML = '<option value="">Select City</option>';
-      
-      const selectedDistrict = districtSelect.value;
-      
+      const selectedDistrict = this.value;
       if (selectedDistrict && citiesByDistrict[selectedDistrict]) {
         citiesByDistrict[selectedDistrict].forEach(city => {
-          const option = document.createElement('option');
+          let option = document.createElement('option');
           option.value = city;
           option.textContent = city;
           citySelect.appendChild(option);
         });
-      }
-    }
-
-    // Add event listeners
-    document.addEventListener('DOMContentLoaded', function() {
-      const provinceSelect = document.getElementById('province');
-      const districtSelect = document.getElementById('district');
-      
-      if (provinceSelect) {
-        provinceSelect.addEventListener('change', updateDistricts);
-      }
-      
-      if (districtSelect) {
-        districtSelect.addEventListener('change', updateCities);
       }
     });
   </script>

@@ -245,6 +245,8 @@ include('sidebar.php');
                     <div class="detail-item">
                         <h3>Available Hours</h3>
                         <p style="white-space: pre-line;"><?php echo htmlspecialchars($doctor['schedule']); ?></p>
+                        <br>
+                        <a href="edit-doctor-schedule-new.php?doctor_id=<?php echo urlencode($doctor['doctor_id']); ?>" class="action-btn schedule">Edit Schedule</a>
                     </div>
                 </div>
             </div>

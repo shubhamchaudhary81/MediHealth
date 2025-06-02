@@ -48,12 +48,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doctor Login - MediHealth</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --primary-color: #3b82f6;
-            --text-color: #1e293b;
-            --background-color: #f8fafc;
+            --primary-color: #2196F3;
+            --secondary-color: #1976D2;
+            --text-color: #333;
+            --error-color: #dc3545;
+            --success-color: #28a745;
+            --background-color: #f8f9fa;
         }
         
         * {
@@ -68,114 +71,184 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
             padding: 20px;
         }
         
         .login-container {
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo img {
+            width: 150px;
+            height: auto;
+            margin-bottom: 20px;
         }
         
         .login-header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 30px;
         }
         
         .login-header h1 {
             color: var(--text-color);
-            font-size: 24px;
-            margin-bottom: 8px;
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
         }
         
         .login-header p {
-            color: #64748b;
-            font-size: 14px;
+            color: #666;
+            font-size: 16px;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .form-group label {
             display: block;
             margin-bottom: 8px;
             color: var(--text-color);
+            font-size: 14px;
             font-weight: 500;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
         }
         
         .form-control {
             width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
         }
         
         .form-control:focus {
-            outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+            background-color: white;
         }
         
-        .login-btn {
+        .btn-login {
             width: 100%;
-            padding: 12px;
-            background-color: var(--primary-color);
-            color: white;
+            padding: 14px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
+            color: white;
             font-size: 16px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
         
-        .login-btn:hover {
-            background-color: #2563eb;
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
         }
         
         .error-message {
-            background-color: #fee2e2;
-            color: #dc2626;
+            background: #fee2e2;
+            color: var(--error-color);
             padding: 12px;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-bottom: 20px;
             font-size: 14px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
         .back-to-home {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 25px;
+            font-size: 14px;
+            color: #666;
         }
         
         .back-to-home a {
             color: var(--primary-color);
             text-decoration: none;
-            font-size: 14px;
+            font-weight: 500;
             transition: color 0.3s;
         }
         
         .back-to-home a:hover {
-            color: #2563eb;
+            color: var(--secondary-color);
             text-decoration: underline;
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+            
+            .login-header h1 {
+                font-size: 24px;
+            }
+            
+            .form-control {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
+        <div class="logo">
+            <img src="../assets/logo-fotor-20250118225918.png" alt="MediHealth Logo">
+        </div>
+        
         <div class="login-header">
             <h1>Doctor Login</h1>
-            <p>Welcome back! Please login to your account.</p>
+            <p>Welcome back! Please login to access your account</p>
         </div>
         
         <?php if (isset($error_message)): ?>
             <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i>
                 <?php echo $error_message; ?>
             </div>
         <?php endif; ?>
@@ -183,19 +256,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <form method="POST" action="">
             <div class="form-group">
                 <label for="doctor_id">Doctor ID</label>
-                <input type="text" id="doctor_id" name="doctor_id" class="form-control" required>
+                <div class="input-group">
+                    <i class="fas fa-user-md"></i>
+                    <input type="text" id="doctor_id" name="doctor_id" class="form-control" 
+                           placeholder="Enter your doctor ID" required>
+                </div>
             </div>
             
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" class="form-control" required>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" name="password" class="form-control" 
+                           placeholder="Enter your password" required>
+                </div>
             </div>
             
-            <button type="submit" class="login-btn">Login</button>
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i>
+                Login
+            </button>
         </form>
         
         <div class="back-to-home">
-            <a href="../index.php">Back to Home</a>
+            <a href="../index.php">
+                <i class="fas fa-arrow-left"></i>
+                Back to Home
+            </a>
         </div>
     </div>
 </body>
